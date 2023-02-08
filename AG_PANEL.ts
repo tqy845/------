@@ -1,41 +1,32 @@
-/*
- * @Author: 谭期元
- * @Version v23.2.7
- * @Date: 2023-02-07 23:19:59
- * @LastEditors: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
- * @LastEditTime: 2023-02-08 00:44:26
- * @Description: [爱果]主面板
- */
-
 import AAg from "./abstracts/AAg";
+import IRequest from "./interfaces/IRequest";
+import IResponse from "./interfaces/IResponse";
 
-class Ag extends AAg {
-  title: string;
-  constructor(title: string) {
+class Ag<T> extends AAg<T> implements IRequest {
+  protected element: T | undefined;
+  request(url: string, params: object, ...args: any): Promise<IResponse<{}>> {
+    throw new Error("Method not implemented.");
+  }
+}
+
+abstract class AButton<T> extends Ag<T> {}
+
+class ButtonImpl extends AButton<HTMLElement> {
+  constructor(buttonName: string) {
     super();
-    this.title = title;
+    this.element = this.getElement("button");
   }
 }
 
-abstract class AButton extends Ag {
-  constructor(buttonName: string) {
-    super(buttonName);
-  }
+abstract class APanel<T> extends Ag<T> {
+  protected abstract show(): void;
 }
-
-class ButtonImpl extends AButton {
-  constructor(buttonName: string) {
-    super(buttonName);
-    const tag = this.getElement("button");
-    this.setElementStyle(tag, {});
-  }
-}
-
-abstract class APanel extends Ag {
-  constructor(panelName: string) {
-    super(panelName);
-    const panel = this.getElement("div", this.title);
-    this.setElementStyle(panel, {
+class PanelImpl extends APanel<HTMLElement> {
+  private static instance: PanelImpl;
+  private constructor(panelName: string) {
+    super();
+    this.element = this.getElement("div", panelName);
+    this.setElementStyle({
       width: "600px",
       height: "500px",
       position: "fixed",
@@ -44,20 +35,34 @@ abstract class APanel extends Ag {
       top: "0",
       backgroundColor: "#121212",
     });
-    const result =
-      this.addToElement(panel, document.body, "top") &&
-      this.mountElementToAG(panel, "panel");
+
+    const options: Array<{ label: string; index: number }> = [
+      {
+        label: "前言",
+        index: 0,
+      },
+      {
+        label: "开始",
+        index: 1,
+      },
+      {
+        label: "配置",
+        index: 2,
+      },
+      {
+        label: "捐助",
+        index: 3,
+      },
+    ];
+    for (const item of options) {
+      const button: ButtonImpl = new ButtonImpl(item.label);
+      console.log(button);
+    }
+
+    const result: boolean =
+      this.addToElement(document.body, "top") && this.mountElementToAG("panel");
 
     console.log(`panel:${result ? "挂载成功" : "挂载失败"}`);
-  }
-
-  protected abstract show(): void;
-}
-class PanelImpl extends APanel {
-  protected static instance: PanelImpl;
-
-  private constructor(panelName: string) {
-    super(panelName);
   }
 
   public static getInstance(panelName?: string) {
