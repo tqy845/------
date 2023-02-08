@@ -141,7 +141,7 @@
         left: "0",
         top: "0",
         backgroundColor: "#121212",
-        border: "2px solid #444444",
+        border: "2px solid #434343",
       });
 
       const options: Array<{ label: string; index: number }> = [
@@ -182,8 +182,5 @@
     public show(): void {}
   }
 
-  let instance = PanelImpl.getInstance(`ag-panel`);
-  instance.show();
-
-  // Your code here...
+  PanelImpl.getInstance(`ag-panel`).show();
 })();
