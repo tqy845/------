@@ -1,18 +1,3 @@
-// ==UserScript==
-// @name         爱果：学xx国
-// @namespace    狗子未遂胆儿肥.
-// @version      23.2.8.4
-// @description  自动获取今日学xx国电脑版的积分
-// @author       谭期元
-// @match        https://pc.xuexi.cn/points/*
-// @match        https://www.xuexi.cn/*
-// @match        https://article.xuexi.cn/articles/*
-// @match        https://preview-pdf.xuexi.cn/preview/*
-// @icon         https://www.xuexi.cn/favicon.ico
-// @grant        none
-// @updateURL    http://www.tqy.pub:9000/down/enjzDgv30c13.js
-// @run-at       document-end
-// ==/UserScript==
 (function () {
   "use strict";
 
@@ -36,18 +21,21 @@
     protected abstract setElementStyle(attributes: Object): boolean;
 
     protected abstract addToElement(
+      element: HTMLElement,
       mountElement: HTMLElement,
       position: "top" | "bottom" | "insert",
       insertBefore?: HTMLElement,
     ): boolean;
 
-    protected abstract mountElementToAG(mountName: string): boolean;
+    protected abstract mountElementToAG(
+      element: HTMLElement,
+      mountName: string,
+    ): boolean;
   }
 
   abstract class AStorage extends AMethods {}
 
   abstract class AAg<T> extends AStorage {
-    protected abstract element: T | undefined;
     protected getElement(
       tagName: string,
       tagId?: string,
@@ -63,12 +51,11 @@
       return tag;
     }
 
-    protected setElementStyle(attributes: Object = {}): boolean {
-      if (
-        !(this.element instanceof HTMLElement) ||
-        !Object.keys(attributes).length
-      )
-        return false;
+    protected setElementStyle(
+      element: HTMLElement,
+      attributes: Object = {},
+    ): boolean {
+      if (!element || !Object.keys(attributes).length) return false;
       for (const key in attributes) {
         // @ts-expect-error
         this.element.style[key] = attributes[key];
@@ -77,33 +64,36 @@
     }
 
     protected addToElement(
+      element: HTMLElement,
       mountElement: HTMLElement,
       position: "top" | "bottom" | "insert" = "top",
       insertBefore?: HTMLElement,
     ): boolean {
-      if (!(this.element instanceof HTMLElement) || !mountElement) return false;
-      mountElement.querySelector(`#${this.element.id}`)?.remove();
+      if (!element || !mountElement) return false;
+      mountElement.querySelector(`#${element.id}`)?.remove();
       switch (position) {
         case "top":
-          mountElement.prepend(this.element);
+          mountElement.prepend(element);
           break;
         case "bottom":
-          mountElement.append(this.element);
+          mountElement.append(element);
           break;
         case "insert":
-          if (insertBefore)
-            mountElement.insertBefore(this.element, insertBefore);
+          if (insertBefore) mountElement.insertBefore(element, insertBefore);
           else new Error("error:insertBefore cannot be empty...");
           break;
       }
       return true;
     }
 
-    protected mountElementToAG(mountName: string): boolean {
-      if (!(this.element instanceof HTMLElement) || !mountName) return false;
+    protected mountElementToAG(
+      element: HTMLElement,
+      mountName: string,
+    ): boolean {
+      if (!element || !mountName) return false;
       const body: any = document.body;
       if (!body.AG) body.AG = {};
-      body.AG[mountName] = this.element;
+      body.AG[mountName] = element;
       return true;
     }
   }
@@ -132,8 +122,8 @@
     private static instance: PanelImpl;
     private constructor(panelName: string) {
       super();
-      this.element = this.getElement("div", panelName);
-      this.setElementStyle({
+      const panel = this.getElement("div", panelName);
+      this.setElementStyle(panel, {
         width: "600px",
         height: "500px",
         position: "fixed",
@@ -143,6 +133,13 @@
         backgroundColor: "#121212",
         border: "2px solid #434343",
       });
+
+      const columnLeft = this.getElement("div");
+      this.setElementStyle(columnLeft, {});
+
+      const columnCenter = this.getElement("div");
+
+      const columnRight = this.getElement("div");
 
       const options: Array<{ label: string; index: number }> = [
         {
@@ -168,8 +165,8 @@
       }
 
       const result: boolean =
-        this.addToElement(document.body, "top") &&
-        this.mountElementToAG("panel");
+        this.addToElement(panel, document.body, "top") &&
+        this.mountElementToAG(panel, "panel");
 
       console.log(`panel:${result ? "挂载成功" : "挂载失败"}`);
     }
