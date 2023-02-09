@@ -411,15 +411,20 @@
         this.setElementStyleOrText(panel, {
           width,
         });
-        this.setElementStyleOrText(columnRight, {
-          textContent,
-        });
-        this.setElementStyleOrText(columnLeft, {
-          display,
-        });
-        this.setElementStyleOrText(columnCenter, {
-          display,
-        });
+        setTimeout(
+          () => {
+            this.setElementStyleOrText(columnRight, {
+              textContent,
+            });
+            this.setElementStyleOrText(columnLeft, {
+              display,
+            });
+            this.setElementStyleOrText(columnCenter, {
+              display,
+            });
+          },
+          status ? 200 : 0,
+        );
       };
 
       this.addToElements(
