@@ -197,12 +197,13 @@
       this.createGlobalErrorHandler();
 
       const style = this.getElement("style");
-      this.setElementStyleOrText(style, {
-        innerHTML: `
+      const globalStyle = `
         li.ag-options[agactive="true"] { color:orange;  }
         li.ag-options:hover { color:orange; }
         li.ag-options { color:#999999; }
-        `,
+        `;
+      this.setElementStyleOrText(style, {
+        innerHTML: globalStyle,
       });
       this.addToElement(style, document.head, "bottom");
 
