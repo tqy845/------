@@ -474,6 +474,9 @@
               width: "auto",
               cursor: "pointer",
             });
+            buttonItem.onclick = () => {
+              console.log("点击..");
+            };
 
             this.addToElement(divStatusBar, this.draw, "bottom");
 
