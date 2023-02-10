@@ -1,5 +1,5 @@
 "use strict";
-(function () {
+(() => {
     "use strict";
     class AGRequest {
         static request;
@@ -211,13 +211,44 @@
     class AAGMethods {
     }
     class AGMethods extends AAGMethods {
-        createGlobalErrorHandler() {
+        registerAGErrorListenerHandler() {
             window.addEventListener("unhandledrejection", (event) => {
                 console.log(event);
             });
             window.onerror = (message, source, lineno, colno, error) => {
                 console.log(message, error);
             };
+        }
+        registerAGMessageListenerHandler(callback) {
+            window.addEventListener("message", (e) => callback(e), false);
+        }
+        sendMessageToAGMessageListenerHandler(message) {
+            window.parent.postMessage(message, "*");
+        }
+        scrollElementIntoView(element) {
+            const rect = element.getBoundingClientRect();
+            const elementTop = rect.top + window.pageYOffset;
+            const viewportHeight = window.innerHeight;
+            const scrollY = elementTop - viewportHeight / 2 + rect.height / 2;
+            window.scrollTo(0, scrollY);
+        }
+        waitForElement(selector) {
+            return new Promise((resolve) => {
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.addedNodes.length > 0) {
+                            if (document.querySelector(selector)) {
+                                observer.disconnect();
+                                resolve(true);
+                            }
+                        }
+                    });
+                });
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                });
+            });
         }
     }
     class AUser {
@@ -265,10 +296,10 @@
     class APanel extends AGMethods {
     }
     class PanelImpl extends APanel {
+        static instance;
         AGStyles = "";
         AGStorage = AGStorage.getInstance();
         AGRequest = AGRequest.getInstance();
-        static instance;
         panel;
         draw;
         statusBar;
@@ -276,7 +307,7 @@
         constructor(panelName) {
             super();
             // 初始化爱果全局异常监听事件
-            this.createGlobalErrorHandler();
+            this.registerAGErrorListenerHandler();
             // 初始化爱果全局样式
             const style = new AGElement("style");
             this.AGStyles += `

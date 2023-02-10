@@ -1,4 +1,4 @@
-(function () {
+(() => {
   "use strict";
 
   interface IResponse<T> {
@@ -296,11 +296,20 @@
   }
 
   abstract class AAGMethods {
-    protected abstract createGlobalErrorHandler(): void;
+    protected abstract registerAGErrorListenerHandler(): void;
+    protected abstract registerAGMessageListenerHandler(
+      callback: (e: MessageEvent<any>) => {},
+    ): void;
+    protected abstract sendMessageToAGMessageListenerHandler(
+      message: string,
+    ): void;
+
+    protected abstract scrollElementIntoView(element: HTMLElement): void;
+    protected abstract waitForElement(selector: string): void;
   }
 
   abstract class AGMethods extends AAGMethods {
-    protected createGlobalErrorHandler() {
+    protected registerAGErrorListenerHandler(): void {
       window.addEventListener("unhandledrejection", (event) => {
         console.log(event);
       });
@@ -308,6 +317,47 @@
       window.onerror = (message, source, lineno, colno, error) => {
         console.log(message, error);
       };
+    }
+
+    protected registerAGMessageListenerHandler(
+      callback: (e: MessageEvent<any>) => {},
+    ): void {
+      window.addEventListener(
+        "message",
+        (e: MessageEvent<any>) => callback(e),
+        false,
+      );
+    }
+
+    protected sendMessageToAGMessageListenerHandler(message: string): void {
+      window.parent.postMessage(message, "*");
+    }
+
+    protected scrollElementIntoView(element: HTMLElement) {
+      const rect = element.getBoundingClientRect();
+      const elementTop = rect.top + window.pageYOffset;
+      const viewportHeight = window.innerHeight;
+      const scrollY = elementTop - viewportHeight / 2 + rect.height / 2;
+      window.scrollTo(0, scrollY);
+    }
+
+    protected waitForElement(selector: string) {
+      return new Promise((resolve) => {
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length > 0) {
+              if (document.querySelector(selector)) {
+                observer.disconnect();
+                resolve(true);
+              }
+            }
+          });
+        });
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
+      });
     }
   }
 
@@ -380,10 +430,10 @@
   }
 
   class PanelImpl extends APanel {
+    private static instance: PanelImpl;
     protected AGStyles: string = "";
     protected AGStorage: AGStorage = AGStorage.getInstance();
     protected AGRequest: AGRequest = AGRequest.getInstance();
-    private static instance: PanelImpl;
     private panel: AGElement;
     private draw: AGElement;
     private statusBar: AGElement;
@@ -392,7 +442,7 @@
       super();
 
       // 初始化爱果全局异常监听事件
-      this.createGlobalErrorHandler();
+      this.registerAGErrorListenerHandler();
 
       // 初始化爱果全局样式
       const style = new AGElement("style");
