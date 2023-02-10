@@ -211,6 +211,8 @@
         li.ag-options[agactive="true"] { color:orange;  }
         li.ag-options:hover { color:orange; }
         li.ag-options { color:#999999; }
+
+        .ag-row-margin-10 { margin:10px 0;}
         `;
             this.setElementStyleOrText(style, {
                 innerHTML: this.globalStyles,
@@ -339,11 +341,143 @@
                 },
                 {
                     label: "配置",
-                    event: () => { },
+                    event: () => {
+                        console.log("配置　begin");
+                        const formItem = this.getElement("form", "ag-draw");
+                        this.setElementStyleOrText(formItem, {});
+                        const addressDivItem = this.getElement("div", "ag-row-margin-10");
+                        const addressDivNameItem = this.getElement("div");
+                        this.setElementStyleOrText(addressDivNameItem, {
+                            textContent: "地址：",
+                        });
+                        const addressInputItem = this.getElement("input");
+                        this.setElementStyleOrText(addressInputItem, {
+                            height: "30px",
+                            border: "1px solid orange",
+                            background: "#ff000000",
+                            borderRadius: "3px",
+                            width: "100%",
+                        });
+                        this.addToElement(addressDivNameItem, addressDivItem, "bottom");
+                        this.addToElement(addressInputItem, addressDivItem, "bottom");
+                        this.addToElement(addressDivItem, formItem, "bottom");
+                        const passwordDivItem = this.getElement("div", "ag-row-margin-10");
+                        const passwordDivNameItem = this.getElement("div");
+                        this.setElementStyleOrText(passwordDivNameItem, {
+                            textContent: "卡密：",
+                        });
+                        const passwordInputItem = this.getElement("input");
+                        passwordInputItem.setAttribute("type", "password");
+                        this.setElementStyleOrText(passwordInputItem, {
+                            height: "30px",
+                            border: "1px solid orange",
+                            background: "#ff000000",
+                            borderRadius: "3px",
+                            width: "100%",
+                        });
+                        this.addToElement(passwordDivNameItem, passwordDivItem, "bottom");
+                        this.addToElement(passwordInputItem, passwordDivItem, "bottom");
+                        this.addToElement(passwordDivItem, formItem, "bottom");
+                        const questionBankDivItem = this.getElement("div", "ag-row-margin-10");
+                        const questionBankNameDivItem = this.getElement("div");
+                        this.setElementStyleOrText(questionBankNameDivItem, {
+                            textContent: "题库：",
+                        });
+                        const questionBankInputItem = this.getElement("input");
+                        questionBankInputItem.setAttribute("type", "password");
+                        this.setElementStyleOrText(questionBankInputItem, {
+                            height: "30px",
+                            border: "1px solid orange",
+                            background: "#ff000000",
+                            borderRadius: "3px",
+                            width: "60%",
+                        });
+                        const questionBankSettingsDivItem = this.getElement("div");
+                        this.setElementStyleOrText(questionBankSettingsDivItem, {
+                            width: "40%",
+                        });
+                        this.addToElement(questionBankNameDivItem, questionBankDivItem, "bottom");
+                        this.addToElement(questionBankInputItem, questionBankDivItem, "bottom");
+                        this.addToElement(questionBankSettingsDivItem, questionBankDivItem, "bottom");
+                        this.addToElement(questionBankDivItem, formItem, "bottom");
+                        this.addToElement(formItem, this.draw, "bottom");
+                        const divSplitLine = this.getElement("div", "ag-draw");
+                        this.setElementStyleOrText(divSplitLine, {
+                            width: "100%",
+                            height: "1px",
+                            background: "#999999",
+                            margin: "10px 0",
+                        });
+                        this.addToElement(divSplitLine, this.draw, "bottom", undefined, true);
+                        const divTasksItem = this.getElement("table", "ag-draw");
+                        this.setElementStyleOrText(divTasksItem, {
+                            margin: "10px 0",
+                            textAlign: "center",
+                        });
+                        this.setElementStyleOrText(divTasksItem, {
+                            innerHTML: `
+                <tr>
+                  <th>任务</th>
+                  <th>启用</th>
+                </tr>
+              `,
+                        });
+                        const tasks = [
+                            {
+                                name: "每日答题",
+                                status: false,
+                                event: () => { },
+                            },
+                            {
+                                name: "专项答题",
+                                status: false,
+                                event: () => { },
+                            },
+                            {
+                                name: "每周答题",
+                                status: false,
+                                event: () => { },
+                            },
+                            {
+                                name: "视听学习/时长",
+                                status: false,
+                                event: () => { },
+                            },
+                            {
+                                name: "我要选读文章",
+                                status: false,
+                                event: () => { },
+                            },
+                        ];
+                        tasks.forEach((item) => {
+                            const { name } = item;
+                            const taskItemTr = this.getElement("tr");
+                            const taskNameTd = this.getElement("td");
+                            const taskStatusTd = this.getElement("td");
+                            this.setElementStyleOrText(taskNameTd, {
+                                textContent: name,
+                            });
+                            this.addToElement(taskNameTd, taskItemTr);
+                            const taskItemInput = this.getElement("input");
+                            taskItemInput.setAttribute("type", "checkbox");
+                            this.setElementStyleOrText(taskItemInput, {
+                                width: "14px",
+                                height: "14px",
+                            });
+                            this.addToElement(taskItemInput, taskStatusTd);
+                            this.addToElement(taskStatusTd, taskItemTr, "bottom");
+                            this.addToElement(taskItemTr, divTasksItem, "bottom");
+                        });
+                        this.addToElement(divTasksItem, this.draw, "bottom", undefined, true);
+                        console.log("配置　end");
+                    },
                 },
                 {
                     label: "捐助",
-                    event: () => { },
+                    event: () => {
+                        console.log("捐助 begin");
+                        console.log("捐助 end");
+                    },
                 },
             ];
             // 左列
