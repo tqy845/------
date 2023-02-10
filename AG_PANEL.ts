@@ -321,6 +321,7 @@
     protected element: T | undefined;
     protected abstract globalStyles: string;
     protected abstract mount(): void;
+    protected abstract setStatusBarText(text: string): void;
     protected abstract appendMessage(message: string): void;
   }
 
@@ -329,6 +330,7 @@
     private static instance: PanelImpl;
     private panel: HTMLElement;
     private draw: HTMLElement;
+    private statusBar: HTMLElement;
     private user: User;
     private constructor(panelName: string) {
       super();
@@ -369,6 +371,128 @@
         borderRadius: "0 5px 5px 0",
       });
 
+      // 初始化画板
+      this.draw = this.getElement("div");
+
+      // 初始化状态栏
+      this.statusBar = this.getElement("div", "ag-draw");
+
+      // 菜单列表
+      const options: Array<{ label: string; event: Function }> = [
+        {
+          label: "前言",
+          event: () => {
+            console.log("前言 begin");
+            const ulItem = this.getElement("ul", "ag-draw");
+            this.setElementStyleOrText(ulItem, {
+              paddingLeft: "20px",
+              cursor: "default",
+              overflowX: "hidden",
+              margin: "0",
+            });
+            const messages = [
+              {
+                textContent:
+                  "本工具为个人制作，仅供交流学习使用，请不要用于商业传播，否则后果自负！使用本工具即代表您同意本条款。",
+                color: "",
+                backgroundColor: "",
+              },
+              {
+                textContent:
+                  "工具的初衷是为了让使用者释放双手，解决方案并未包含入侵的攻击和技术，仅模拟人工打开相应的任务进行操作，对程序本身不会造成任何影响，如果对平台技术层面有影响请转告我们。",
+                color: "",
+                backgroundColor: "",
+              },
+              {
+                textContent:
+                  "使用者在使用本软件前已经得知可能涉嫌《非法入侵计算机信息系统罪》，但滥用本软件造成的—切后果自行承担!",
+                color: "",
+                backgroundColor: "",
+              },
+              {
+                textContent:
+                  "使用方法：点击【开始任务】即可自动完成电脑端每日任务（除【登录】任务），期间可以切到后台，但不要最小化，中断后可以点击【开始/继续任务】即可继续任务。",
+                color: "white",
+                backgroundColor: "orange",
+              },
+            ];
+            for (const item of messages) {
+              const liItem = this.getElement("li");
+              const { textContent, color, backgroundColor } = item;
+              this.setElementStyleOrText(liItem, {
+                textContent,
+                color,
+                backgroundColor,
+                margin: "5px 0",
+              });
+              this.addToElement(liItem, ulItem, "bottom");
+            }
+            this.addToElement(ulItem, this.draw, "bottom");
+            console.log("前言 end");
+          },
+        },
+        {
+          label: "开始",
+          event: () => {
+            console.log("开始...");
+            const divStatusBar = this.statusBar;
+            this.setElementStyleOrText(divStatusBar, {
+              height: "30px",
+              lineHeight: "30px",
+            });
+            this.setStatusBarText("未开始");
+
+            const ulItem = this.getElement("ul", "ag-draw");
+            this.setElementStyleOrText(ulItem, {
+              fontSize: "15px",
+              cursor: "default",
+              overflowX: "hidden",
+              color: "orange",
+              margin: "0",
+              marginBottom: "15px",
+              height: "332px",
+              width: "100%",
+              backgroundColor: "#1e1e1e",
+              borderRadius: "10px",
+              display: "inline-table",
+              listStyleType: "decimal",
+            });
+
+            this.appendMessage(`程序已就绪...`);
+
+            const buttonItem = this.getElement("button", "ag-draw");
+            this.setElementStyleOrText(buttonItem, {
+              textContent: "开始任务",
+              backgroundColor: "#e22b2b00",
+              color: "orange",
+              border: "1px solid orange",
+              borderRadius: "10px",
+              height: "28px",
+              fontSize: "14px",
+              margin: "0 auto",
+              padding: "0 70px",
+              width: "auto",
+              cursor: "pointer",
+            });
+
+            this.addToElement(divStatusBar, this.draw, "bottom");
+
+            this.addToElement(ulItem, this.draw, "bottom", undefined, true);
+
+            this.addToElement(buttonItem, this.draw, "bottom", undefined, true);
+          },
+        },
+        {
+          label: "配置",
+          event: () => {},
+        },
+        {
+          label: "捐助",
+          event: () => {},
+        },
+      ];
+
+      // 左列
       const columnLeft = this.getElement("div");
       this.setElementStyleOrText(columnLeft, {
         backgroundColor: "#292929",
@@ -444,114 +568,6 @@
           rowFour,
         );
 
-        const options: Array<{ label: string; event: Function }> = [
-          {
-            label: "前言",
-            event: () => {
-              console.log("前言 begin");
-              const ulItem = this.getElement("ul", "ag-draw");
-              this.setElementStyleOrText(ulItem, {
-                paddingLeft: "20px",
-                cursor: "default",
-                overflowX: "hidden",
-                margin: "0",
-              });
-              const messages = [
-                {
-                  textContent:
-                    "本工具为个人制作，仅供交流学习使用，请不要用于商业传播，否则后果自负！使用本工具即代表您同意本条款。",
-                  color: "",
-                  backgroundColor: "",
-                },
-                {
-                  textContent:
-                    "工具的初衷是为了让使用者释放双手，解决方案并未包含入侵的攻击和技术，仅模拟人工打开相应的任务进行操作，对程序本身不会造成任何影响，如果对平台技术层面有影响请转告我们。",
-                  color: "",
-                  backgroundColor: "",
-                },
-                {
-                  textContent:
-                    "使用者在使用本软件前已经得知可能涉嫌《非法入侵计算机信息系统罪》，但滥用本软件造成的—切后果自行承担!",
-                  color: "",
-                  backgroundColor: "",
-                },
-                {
-                  textContent:
-                    "使用方法：点击【开始任务】即可自动完成电脑端每日任务（除【登录】任务），期间可以切到后台，但不要最小化，中断后可以点击【开始/继续任务】即可继续任务。",
-                  color: "white",
-                  backgroundColor: "orange",
-                },
-              ];
-              for (const item of messages) {
-                const liItem = this.getElement("li");
-                const { textContent, color, backgroundColor } = item;
-                this.setElementStyleOrText(liItem, {
-                  textContent,
-                  color,
-                  backgroundColor,
-                  margin: "5px 0",
-                });
-                this.addToElement(liItem, ulItem, "bottom");
-              }
-              this.addToElement(ulItem, this.draw, "bottom");
-              console.log("前言 end");
-            },
-          },
-          {
-            label: "开始",
-            event: () => {
-              console.log("开始...");
-              const ulItem = this.getElement("ul", "ag-draw");
-              this.setElementStyleOrText(ulItem, {
-                fontSize: "15px",
-                cursor: "default",
-                overflowX: "hidden",
-                color: "orange",
-                margin: "0",
-                marginBottom: "15px",
-                height: "362px",
-                width: "100%",
-                backgroundColor: "#1e1e1e",
-                borderRadius: "10px",
-                display: "inline-table",
-                listStyleType: "decimal",
-              });
-
-              this.appendMessage(`程序已就绪...`);
-
-              const buttonItem = this.getElement("button", "ag-draw");
-              this.setElementStyleOrText(buttonItem, {
-                textContent: "开始任务",
-                backgroundColor: "#e22b2b00",
-                color: "orange",
-                border: "1px solid orange",
-                borderRadius: "10px",
-                height: "28px",
-                fontSize: "14px",
-                margin: "0 auto",
-                padding: "0 70px",
-                width: "auto",
-                cursor: "pointer",
-              });
-              this.addToElement(ulItem, this.draw, "bottom");
-              this.addToElement(
-                buttonItem,
-                this.draw,
-                "bottom",
-                undefined,
-                true,
-              );
-            },
-          },
-          {
-            label: "配置",
-            event: () => {},
-          },
-          {
-            label: "捐助",
-            event: () => {},
-          },
-        ];
         const menu = this.getElement("ul");
         this.setElementStyleOrText(menu, {
           listStyleType: "none",
@@ -593,6 +609,7 @@
         }
       }
 
+      // 中列
       const columnCenter = this.getElement("div");
       this.setElementStyleOrText(columnCenter, {
         width: "425px",
@@ -607,11 +624,10 @@
           height: "30px",
           lineHeight: "30px",
           textAlign: "center",
-          fontSize:"15px"
+          fontSize: "15px",
         });
 
-        const rowTwo = this.getElement("div");
-        this.draw = rowTwo;
+        const rowTwo = this.draw;
         this.setElementStyleOrText(rowTwo, {
           height: "420px",
           display: "flex",
@@ -629,6 +645,7 @@
         );
       }
 
+      // 右列
       const columnRight = this.getElement("div");
       this.setElementStyleOrText(columnRight, {
         textContent: "展开控制台",
@@ -697,6 +714,14 @@
       console.log(`panel:挂载${result ? "成功" : "失败"} end`);
     }
 
+    public setStatusBarText(text: string): void {
+      Promise.resolve().then(() => {
+        this.setElementStyleOrText(this.statusBar, {
+          innerHTML: `状态栏：${text}`,
+        });
+      });
+    }
+
     public appendMessage(message: string): void {
       const liItem = this.getElement("li");
       this.setElementStyleOrText(liItem, {
@@ -704,7 +729,7 @@
         margin: "5px 0",
       });
       Promise.resolve().then(() => {
-        const ul = this.draw.firstChild;
+        const ul = this.draw.children[1];
         if (ul && ul instanceof HTMLElement)
           this.addToElement(liItem, ul, "bottom");
       });
