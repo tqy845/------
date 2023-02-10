@@ -1,6 +1,55 @@
 "use strict";
 (function () {
     "use strict";
+    class AGStorage {
+        static storage;
+        constructor() { }
+        static getInstance() {
+            if (!AGStorage.storage)
+                AGStorage.storage = new AGStorage();
+            return AGStorage.storage;
+        }
+        set(key, value, type = "local") {
+            key = "AG_STORAGE_".concat(key.toUpperCase());
+            if (value instanceof Object)
+                value = JSON.stringify(value);
+            type === "local"
+                ? localStorage.setItem(key, String(value))
+                : sessionStorage.setItem(key, String(value));
+        }
+        get(key, type = "local", parse = false) {
+            key = "AG_STORAGE_".concat(key.toUpperCase());
+            let result = type === "local"
+                ? localStorage.getItem(key)
+                : sessionStorage.getItem(key);
+            return parse && result ? JSON.parse(result) : result;
+        }
+        increase(key, type) {
+            const ITEM = this.get(key);
+            const VALUE = Number(ITEM);
+            if (isNaN(VALUE))
+                throw new Error("error:非数字不可自增");
+            this.set(key, VALUE + 1, type);
+            return Number(this.get(key));
+        }
+        remove(key, type) {
+            key = "AG_STORAGE_".concat(key.toUpperCase());
+            type === "local"
+                ? localStorage.removeItem(key)
+                : sessionStorage.removeItem(key);
+        }
+        clear() {
+            const handler = (instance) => {
+                Object.keys(instance).forEach((item) => {
+                    if (item.startsWith("AG_STORAGE_")) {
+                        instance.removeItem(item);
+                    }
+                });
+            };
+            handler(localStorage);
+            handler(sessionStorage);
+        }
+    }
     class AAGElement {
     }
     class AGElement extends AAGElement {
@@ -130,9 +179,7 @@
     }
     class AMethods {
     }
-    class AStorage extends AMethods {
-    }
-    class AAg extends AStorage {
+    class AAg extends AMethods {
     }
     class Ag extends AAg {
         // 爱果方法
@@ -145,46 +192,6 @@
             };
         }
         // 爱果存储
-        setStorage(key, value, type = "local") {
-            key = "AG_STORAGE_".concat(key.toUpperCase());
-            if (value instanceof Object)
-                value = JSON.stringify(value);
-            type === "local"
-                ? localStorage.setItem(key, String(value))
-                : sessionStorage.setItem(key, String(value));
-        }
-        getStorage(key, type = "local", parse = false) {
-            key = "AG_STORAGE_".concat(key.toUpperCase());
-            let result = type === "local"
-                ? localStorage.getItem(key)
-                : sessionStorage.getItem(key);
-            return parse && result ? JSON.parse(result) : result;
-        }
-        increaseStorage(key, type) {
-            const ITEM = this.getStorage(key);
-            const VALUE = Number(ITEM);
-            if (isNaN(VALUE))
-                throw new Error("error:非数字不可自增");
-            this.setStorage(key, VALUE + 1, type);
-            return Number(this.getStorage(key));
-        }
-        removeStorage(key, type) {
-            key = "AG_STORAGE_".concat(key.toUpperCase());
-            type === "local"
-                ? localStorage.removeItem(key)
-                : sessionStorage.removeItem(key);
-        }
-        clearStorage() {
-            const handler = (instance) => {
-                Object.keys(instance).forEach((item) => {
-                    if (item.startsWith("AG_STORAGE_")) {
-                        instance.removeItem(item);
-                    }
-                });
-            };
-            handler(localStorage);
-            handler(sessionStorage);
-        }
         // 爱果接口
         request(url, params, ...args) {
             throw new Error("Method not implemented.");
@@ -233,10 +240,10 @@
         }
     }
     class APanel extends Ag {
-        element;
     }
     class PanelImpl extends APanel {
         globalStyles = "";
+        globalStorage = AGStorage.getInstance();
         static instance;
         panel;
         draw;
@@ -258,7 +265,7 @@
             style.setText(this.globalStyles);
             style.mountElementTo(document.head);
             // 初始化爱果用户信息
-            this.user = new User(this.getStorage("user", "local", true));
+            this.user = new User(this.globalStorage.get("user", "local", true));
             // 初始化爱果面板
             const panel = new AGElement("panel", panelName);
             panel.setStyle({
@@ -603,7 +610,7 @@
                     marginTop: "20px",
                 });
                 menu.mountElementTo(columnLeft);
-                const agOptionsActive = this.getStorage("options_active");
+                const agOptionsActive = this.globalStorage.get("options_active");
                 for (const item of options) {
                     const li = new AGElement("li", `ag-options`);
                     li.toHTMLElement().setAttribute("ag-title", item.label);
@@ -623,7 +630,7 @@
                         li.setAttr("ag-active", "true");
                         const agTitle = li.getAttr("ag-title");
                         if (agTitle)
-                            this.setStorage("options_active", agTitle);
+                            this.globalStorage.set("options_active", agTitle);
                     };
                     if (item.label == agOptionsActive) {
                         setTimeout(() => li.toHTMLElement().click(), 0);

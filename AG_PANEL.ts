@@ -11,6 +11,81 @@
     data: T;
   }
 
+  interface IAGStorage {
+    set(key: string, value: string | object, type: "local" | "session"): void;
+
+    get(
+      key: string,
+      type: "local" | "session",
+      parse: true | false,
+    ): string | object | null;
+
+    increase(key: string, type: "local" | "session"): number;
+
+    remove(key: string, type: "local" | "session"): void;
+
+    clear(): void;
+  }
+
+  class AGStorage implements IAGStorage {
+    private static storage: AGStorage;
+
+    private constructor() {}
+
+    static getInstance() {
+      if (!AGStorage.storage) AGStorage.storage = new AGStorage();
+      return AGStorage.storage;
+    }
+
+    set(
+      key: string,
+      value: number | string | object,
+      type: "local" | "session" = "local",
+    ): void {
+      key = "AG_STORAGE_".concat(key.toUpperCase());
+      if (value instanceof Object) value = JSON.stringify(value);
+      type === "local"
+        ? localStorage.setItem(key, String(value))
+        : sessionStorage.setItem(key, String(value));
+    }
+    get(
+      key: string,
+      type: "local" | "session" = "local",
+      parse: boolean = false,
+    ): string | object | null {
+      key = "AG_STORAGE_".concat(key.toUpperCase());
+      let result =
+        type === "local"
+          ? localStorage.getItem(key)
+          : sessionStorage.getItem(key);
+      return parse && result ? JSON.parse(result) : result;
+    }
+    increase(key: string, type: "local" | "session"): number {
+      const ITEM = this.get(key);
+      const VALUE = Number(ITEM);
+      if (isNaN(VALUE)) throw new Error("error:非数字不可自增");
+      this.set(key, VALUE + 1, type);
+      return Number(this.get(key));
+    }
+    remove(key: string, type: "local" | "session"): void {
+      key = "AG_STORAGE_".concat(key.toUpperCase());
+      type === "local"
+        ? localStorage.removeItem(key)
+        : sessionStorage.removeItem(key);
+    }
+    clear(): void {
+      const handler = (instance: Storage) => {
+        Object.keys(instance).forEach((item) => {
+          if (item.startsWith("AG_STORAGE_")) {
+            instance.removeItem(item);
+          }
+        });
+      };
+      handler(localStorage);
+      handler(sessionStorage);
+    }
+  }
+
   abstract class AAGElement {
     protected abstract setStyle(
       attributes: { [key: string]: string },
@@ -184,33 +259,7 @@
     protected abstract createGlobalErrorHandler(): void;
   }
 
-  abstract class AStorage extends AMethods {
-    protected abstract setStorage(
-      key: string,
-      value: string | object,
-      type: "local" | "session",
-    ): void;
-
-    protected abstract getStorage(
-      key: string,
-      type: "local" | "session",
-      parse: true | false,
-    ): string | object | null;
-
-    protected abstract increaseStorage(
-      key: string,
-      type: "local" | "session",
-    ): number;
-
-    protected abstract removeStorage(
-      key: string,
-      type: "local" | "session",
-    ): void;
-
-    protected abstract clearStorage(): void;
-  }
-
-  abstract class AAg extends AStorage {}
+  abstract class AAg extends AMethods {}
 
   class Ag extends AAg implements IRequest {
     // 爱果方法
@@ -225,53 +274,6 @@
     }
 
     // 爱果存储
-    protected setStorage(
-      key: string,
-      value: number | string | object,
-      type: "local" | "session" = "local",
-    ): void {
-      key = "AG_STORAGE_".concat(key.toUpperCase());
-      if (value instanceof Object) value = JSON.stringify(value);
-      type === "local"
-        ? localStorage.setItem(key, String(value))
-        : sessionStorage.setItem(key, String(value));
-    }
-    protected getStorage(
-      key: string,
-      type: "local" | "session" = "local",
-      parse: boolean = false,
-    ): string | object | null {
-      key = "AG_STORAGE_".concat(key.toUpperCase());
-      let result =
-        type === "local"
-          ? localStorage.getItem(key)
-          : sessionStorage.getItem(key);
-      return parse && result ? JSON.parse(result) : result;
-    }
-    protected increaseStorage(key: string, type: "local" | "session"): number {
-      const ITEM = this.getStorage(key);
-      const VALUE = Number(ITEM);
-      if (isNaN(VALUE)) throw new Error("error:非数字不可自增");
-      this.setStorage(key, VALUE + 1, type);
-      return Number(this.getStorage(key));
-    }
-    protected removeStorage(key: string, type: "local" | "session"): void {
-      key = "AG_STORAGE_".concat(key.toUpperCase());
-      type === "local"
-        ? localStorage.removeItem(key)
-        : sessionStorage.removeItem(key);
-    }
-    protected clearStorage(): void {
-      const handler = (instance: Storage) => {
-        Object.keys(instance).forEach((item) => {
-          if (item.startsWith("AG_STORAGE_")) {
-            instance.removeItem(item);
-          }
-        });
-      };
-      handler(localStorage);
-      handler(sessionStorage);
-    }
 
     // 爱果接口
     request(url: string, params: object, ...args: any): Promise<IResponse<{}>> {
@@ -338,16 +340,17 @@
     }
   }
 
-  abstract class APanel<T> extends Ag {
-    protected element: T | undefined;
+  abstract class APanel extends Ag {
     protected abstract globalStyles: string;
+    protected abstract globalStorage: AGStorage;
     protected abstract mount(): void;
     protected abstract setStatusBarText(text: string): void;
     protected abstract appendMessage(message: string): void;
   }
 
-  class PanelImpl extends APanel<HTMLElement> {
+  class PanelImpl extends APanel {
     protected globalStyles: string = "";
+    protected globalStorage: AGStorage = AGStorage.getInstance();
     private static instance: PanelImpl;
     private panel: AGElement;
     private draw: AGElement;
@@ -372,7 +375,7 @@
       style.mountElementTo(document.head);
 
       // 初始化爱果用户信息
-      this.user = new User(this.getStorage("user", "local", true));
+      this.user = new User(this.globalStorage.get("user", "local", true));
 
       // 初始化爱果面板
       const panel = new AGElement("panel", panelName);
@@ -766,7 +769,7 @@
         });
         menu.mountElementTo(columnLeft);
 
-        const agOptionsActive = this.getStorage("options_active");
+        const agOptionsActive = this.globalStorage.get("options_active");
         for (const item of options) {
           const li = new AGElement("li", `ag-options`);
           li.toHTMLElement().setAttribute("ag-title", item.label);
@@ -785,7 +788,7 @@
             }
             li.setAttr("ag-active", "true");
             const agTitle = li.getAttr("ag-title");
-            if (agTitle) this.setStorage("options_active", agTitle);
+            if (agTitle) this.globalStorage.set("options_active", agTitle);
           };
           if (item.label == agOptionsActive) {
             setTimeout(() => li.toHTMLElement().click(), 0);
