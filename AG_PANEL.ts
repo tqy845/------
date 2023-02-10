@@ -453,7 +453,6 @@
               margin: "0",
               marginBottom: "15px",
               height: "332px",
-              width: "100%",
               backgroundColor: "#1e1e1e",
               borderRadius: "10px",
               display: "inline-table",
@@ -492,9 +491,16 @@
           event: () => {
             console.log("配置　begin");
             const formItem = this.getElement("form", "ag-draw");
-            this.setElementStyleOrText(formItem, {});
+            this.setElementStyleOrText(formItem, {
+              display: "inline-flex",
+              flexWrap: "wrap",
+              justifyContent: "space-around",
+            });
 
             const addressDivItem = this.getElement("div", "ag-row-margin-10");
+            this.setElementStyleOrText(addressDivItem, {
+              maxWidth: "175px",
+            });
             const addressDivNameItem = this.getElement("div");
             this.setElementStyleOrText(addressDivNameItem, {
               textContent: "地址：",
@@ -505,7 +511,6 @@
               border: "1px solid orange",
               background: "#ff000000",
               borderRadius: "3px",
-              width: "100%",
             });
 
             this.addToElement(addressDivNameItem, addressDivItem, "bottom");
@@ -513,6 +518,9 @@
             this.addToElement(addressDivItem, formItem, "bottom");
 
             const passwordDivItem = this.getElement("div", "ag-row-margin-10");
+            this.setElementStyleOrText(passwordDivItem, {
+              maxWidth: "175px",
+            });
             const passwordDivNameItem = this.getElement("div");
             this.setElementStyleOrText(passwordDivNameItem, {
               textContent: "卡密：",
@@ -524,7 +532,6 @@
               border: "1px solid orange",
               background: "#ff000000",
               borderRadius: "3px",
-              width: "100%",
             });
 
             this.addToElement(passwordDivNameItem, passwordDivItem, "bottom");
@@ -535,9 +542,12 @@
               "div",
               "ag-row-margin-10",
             );
+            this.setElementStyleOrText(questionBankDivItem, {
+              maxWidth: "175px",
+            });
             const questionBankNameDivItem = this.getElement("div");
             this.setElementStyleOrText(questionBankNameDivItem, {
-              textContent: "题库：",
+              textContent: "题库（配置）：",
             });
             const questionBankInputItem = this.getElement("input");
             questionBankInputItem.setAttribute("type", "password");
@@ -550,7 +560,10 @@
             });
             const questionBankSettingsDivItem = this.getElement("div");
             this.setElementStyleOrText(questionBankSettingsDivItem, {
-              width: "40%",
+              innerHTML: `<input type='checkbox'>启用`,
+              display: "inline-flex",
+              alignItems: "center",
+              padding: "0 5px",
             });
 
             this.addToElement(
@@ -569,6 +582,13 @@
               "bottom",
             );
             this.addToElement(questionBankDivItem, formItem, "bottom");
+
+            const divItem = this.getElement("div", "ag-row-margin-10");
+            this.setElementStyleOrText(divItem, {
+              width: "175px",
+            });
+
+            this.addToElement(divItem, formItem, "bottom");
 
             this.addToElement(formItem, this.draw, "bottom");
 
@@ -663,7 +683,17 @@
           label: "捐助",
           event: () => {
             console.log("捐助 begin");
+            const divItem = this.getElement("div", "ag-draw");
 
+            const pItem = this.getElement("p");
+            this.setElementStyleOrText(pItem, {
+              textContent: `到底为什么要开学考试，真的很打咩好吗！！！`,
+              fontSize: "50px",
+              color: "orange",
+            });
+            this.addToElement(pItem, divItem);
+
+            this.addToElement(divItem, this.draw);
             console.log("捐助 end");
           },
         },
