@@ -8,7 +8,11 @@
   }
 
   interface IRequest {
-    request(url: string, params: object, ...args: any): Promise<IResponse<{}>>;
+    request(
+      url: string,
+      type: string,
+      data: object,
+    ): Promise<IResponse<object>>;
   }
 
   class AGRequest implements IRequest {
@@ -20,8 +24,30 @@
       return AGRequest.request;
     }
 
-    request(url: string, params: object, ...args: any): Promise<IResponse<{}>> {
-      throw new Error("Method not implemented.");
+    async request(
+      url: string,
+      type: string,
+      data: object,
+    ): Promise<IResponse<object>> {
+      const body: RequestInit = {
+        method: type,
+        body: JSON.stringify(data),
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+      if (type.toUpperCase() === "GET") {
+        delete body.body;
+      }
+      try {
+        const response = await fetch(`xxx/AG${url}`, body);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error(error);
+        return { code: -1, msg: "", data: {} };
+      }
     }
   }
 

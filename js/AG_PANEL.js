@@ -9,8 +9,27 @@
                 AGRequest.request = new AGRequest();
             return AGRequest.request;
         }
-        request(url, params, ...args) {
-            throw new Error("Method not implemented.");
+        async request(url, type, data) {
+            const body = {
+                method: type,
+                body: JSON.stringify(data),
+                mode: "cors",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            };
+            if (type.toUpperCase() === "GET") {
+                delete body.body;
+            }
+            try {
+                const response = await fetch(`xxx/AG${url}`, body);
+                const data = await response.json();
+                return data;
+            }
+            catch (error) {
+                console.error(error);
+                return { code: -1, msg: "", data: {} };
+            }
         }
     }
     class AGStorage {
