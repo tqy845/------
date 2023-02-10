@@ -321,12 +321,14 @@
     protected element: T | undefined;
     protected abstract globalStyles: string;
     protected abstract mount(): void;
+    protected abstract appendMessage(message: string): void;
   }
 
   class PanelImpl extends APanel<HTMLElement> {
     protected globalStyles: string = "";
     private static instance: PanelImpl;
     private panel: HTMLElement;
+    private draw: HTMLElement;
     private user: User;
     private constructor(panelName: string) {
       super();
@@ -366,7 +368,6 @@
         color: "#999999",
         borderRadius: "0 5px 5px 0",
       });
-      let draw: HTMLElement;
 
       const columnLeft = this.getElement("div");
       this.setElementStyleOrText(columnLeft, {
@@ -492,7 +493,7 @@
                 });
                 this.addToElement(liItem, ulItem, "bottom");
               }
-              this.addToElement(ulItem, draw, "bottom");
+              this.addToElement(ulItem, this.draw, "bottom");
               console.log("前言 end");
             },
           },
@@ -502,7 +503,7 @@
               console.log("开始...");
               const ulItem = this.getElement("ul", "ag-draw");
               this.setElementStyleOrText(ulItem, {
-                paddingLeft: "0",
+                fontSize: "15px",
                 cursor: "default",
                 overflowX: "hidden",
                 color: "orange",
@@ -512,7 +513,12 @@
                 width: "100%",
                 backgroundColor: "#1e1e1e",
                 borderRadius: "10px",
+                display: "inline-table",
+                listStyleType: "decimal",
               });
+
+              this.appendMessage(`程序已就绪...`);
+
               const buttonItem = this.getElement("button", "ag-draw");
               this.setElementStyleOrText(buttonItem, {
                 textContent: "开始任务",
@@ -527,8 +533,14 @@
                 width: "auto",
                 cursor: "pointer",
               });
-              this.addToElement(ulItem, draw, "bottom");
-              this.addToElement(buttonItem, draw, "bottom", undefined, true);
+              this.addToElement(ulItem, this.draw, "bottom");
+              this.addToElement(
+                buttonItem,
+                this.draw,
+                "bottom",
+                undefined,
+                true,
+              );
             },
           },
           {
@@ -573,7 +585,6 @@
             });
             const agTitle = li.getAttribute("ag-title");
             if (agTitle) this.setStorage("options_active", agTitle);
-            console.log(agTitle);
           };
           if (item.label == agOptionsActive) {
             setTimeout(() => li.click(), 0);
@@ -592,14 +603,15 @@
       {
         const rowOne = this.getElement("div");
         this.setElementStyleOrText(rowOne, {
-          textContent: "爱果学习强国　v23.2.X",
+          textContent: "爱果 - 学XX国 v23.X.X",
           height: "30px",
           lineHeight: "30px",
           textAlign: "center",
+          fontSize:"15px"
         });
 
         const rowTwo = this.getElement("div");
-        draw = rowTwo;
+        this.draw = rowTwo;
         this.setElementStyleOrText(rowTwo, {
           height: "420px",
           display: "flex",
@@ -683,6 +695,19 @@
         this.addToElement(this.panel, document.body, "top") &&
         this.mountElementToAG(this.panel, "panel");
       console.log(`panel:挂载${result ? "成功" : "失败"} end`);
+    }
+
+    public appendMessage(message: string): void {
+      const liItem = this.getElement("li");
+      this.setElementStyleOrText(liItem, {
+        textContent: `${new Date().toLocaleTimeString()}：${message}`,
+        margin: "5px 0",
+      });
+      Promise.resolve().then(() => {
+        const ul = this.draw.firstChild;
+        if (ul && ul instanceof HTMLElement)
+          this.addToElement(liItem, ul, "bottom");
+      });
     }
   }
 
