@@ -1,6 +1,18 @@
 "use strict";
 (function () {
     "use strict";
+    class AGRequest {
+        static request;
+        constructor() { }
+        static getInstance() {
+            if (!AGRequest.request)
+                AGRequest.request = new AGRequest();
+            return AGRequest.request;
+        }
+        request(url, params, ...args) {
+            throw new Error("Method not implemented.");
+        }
+    }
     class AGStorage {
         static storage;
         constructor() { }
@@ -177,12 +189,9 @@
             return ele;
         }
     }
-    class AMethods {
+    class AAGMethods {
     }
-    class AAg extends AMethods {
-    }
-    class Ag extends AAg {
-        // 爱果方法
+    class AGMethods extends AAGMethods {
         createGlobalErrorHandler() {
             window.addEventListener("unhandledrejection", (event) => {
                 console.log(event);
@@ -190,11 +199,6 @@
             window.onerror = (message, source, lineno, colno, error) => {
                 console.log(message, error);
             };
-        }
-        // 爱果存储
-        // 爱果接口
-        request(url, params, ...args) {
-            throw new Error("Method not implemented.");
         }
     }
     class AUser {
@@ -239,11 +243,12 @@
             return result;
         }
     }
-    class APanel extends Ag {
+    class APanel extends AGMethods {
     }
     class PanelImpl extends APanel {
-        globalStyles = "";
-        globalStorage = AGStorage.getInstance();
+        AGStyles = "";
+        AGStorage = AGStorage.getInstance();
+        AGRequest = AGRequest.getInstance();
         static instance;
         panel;
         draw;
@@ -255,17 +260,17 @@
             this.createGlobalErrorHandler();
             // 初始化爱果全局样式
             const style = new AGElement("style");
-            this.globalStyles += `
+            this.AGStyles += `
         li.ag-options[ag-active="true"] { color:orange;  }
         li.ag-options:hover { color:orange; }
         li.ag-options { color:#999999; }
 
         .ag-row-margin-10 { margin:10px 0;}
         `;
-            style.setText(this.globalStyles);
+            style.setText(this.AGStyles);
             style.mountElementTo(document.head);
             // 初始化爱果用户信息
-            this.user = new User(this.globalStorage.get("user", "local", true));
+            this.user = new User(this.AGStorage.get("user", "local", true));
             // 初始化爱果面板
             const panel = new AGElement("panel", panelName);
             panel.setStyle({
@@ -610,7 +615,7 @@
                     marginTop: "20px",
                 });
                 menu.mountElementTo(columnLeft);
-                const agOptionsActive = this.globalStorage.get("options_active");
+                const agOptionsActive = this.AGStorage.get("options_active");
                 for (const item of options) {
                     const li = new AGElement("li", `ag-options`);
                     li.toHTMLElement().setAttribute("ag-title", item.label);
@@ -630,7 +635,7 @@
                         li.setAttr("ag-active", "true");
                         const agTitle = li.getAttr("ag-title");
                         if (agTitle)
-                            this.globalStorage.set("options_active", agTitle);
+                            this.AGStorage.set("options_active", agTitle);
                     };
                     if (item.label == agOptionsActive) {
                         setTimeout(() => li.toHTMLElement().click(), 0);

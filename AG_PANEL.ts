@@ -1,14 +1,28 @@
 (function () {
   "use strict";
 
-  interface IRequest {
-    request(url: string, params: object, ...args: any): Promise<IResponse<{}>>;
-  }
-
   interface IResponse<T> {
     code: number;
     msg: string;
     data: T;
+  }
+
+  interface IRequest {
+    request(url: string, params: object, ...args: any): Promise<IResponse<{}>>;
+  }
+
+  class AGRequest implements IRequest {
+    private static request: AGRequest;
+    private constructor() {}
+
+    static getInstance() {
+      if (!AGRequest.request) AGRequest.request = new AGRequest();
+      return AGRequest.request;
+    }
+
+    request(url: string, params: object, ...args: any): Promise<IResponse<{}>> {
+      throw new Error("Method not implemented.");
+    }
   }
 
   interface IAGStorage {
@@ -255,14 +269,11 @@
     }
   }
 
-  abstract class AMethods {
+  abstract class AAGMethods {
     protected abstract createGlobalErrorHandler(): void;
   }
 
-  abstract class AAg extends AMethods {}
-
-  class Ag extends AAg implements IRequest {
-    // 爱果方法
+  abstract class AGMethods extends AAGMethods {
     protected createGlobalErrorHandler() {
       window.addEventListener("unhandledrejection", (event) => {
         console.log(event);
@@ -271,13 +282,6 @@
       window.onerror = (message, source, lineno, colno, error) => {
         console.log(message, error);
       };
-    }
-
-    // 爱果存储
-
-    // 爱果接口
-    request(url: string, params: object, ...args: any): Promise<IResponse<{}>> {
-      throw new Error("Method not implemented.");
     }
   }
 
@@ -340,17 +344,19 @@
     }
   }
 
-  abstract class APanel extends Ag {
-    protected abstract globalStyles: string;
-    protected abstract globalStorage: AGStorage;
+  abstract class APanel extends AGMethods {
+    protected abstract AGStyles: string;
+    protected abstract AGStorage: AGStorage;
+    protected abstract AGRequest: AGRequest;
     protected abstract mount(): void;
     protected abstract setStatusBarText(text: string): void;
     protected abstract appendMessage(message: string): void;
   }
 
   class PanelImpl extends APanel {
-    protected globalStyles: string = "";
-    protected globalStorage: AGStorage = AGStorage.getInstance();
+    protected AGStyles: string = "";
+    protected AGStorage: AGStorage = AGStorage.getInstance();
+    protected AGRequest: AGRequest = AGRequest.getInstance();
     private static instance: PanelImpl;
     private panel: AGElement;
     private draw: AGElement;
@@ -364,18 +370,18 @@
 
       // 初始化爱果全局样式
       const style = new AGElement("style");
-      this.globalStyles += `
+      this.AGStyles += `
         li.ag-options[ag-active="true"] { color:orange;  }
         li.ag-options:hover { color:orange; }
         li.ag-options { color:#999999; }
 
         .ag-row-margin-10 { margin:10px 0;}
         `;
-      style.setText(this.globalStyles);
+      style.setText(this.AGStyles);
       style.mountElementTo(document.head);
 
       // 初始化爱果用户信息
-      this.user = new User(this.globalStorage.get("user", "local", true));
+      this.user = new User(this.AGStorage.get("user", "local", true));
 
       // 初始化爱果面板
       const panel = new AGElement("panel", panelName);
@@ -769,7 +775,7 @@
         });
         menu.mountElementTo(columnLeft);
 
-        const agOptionsActive = this.globalStorage.get("options_active");
+        const agOptionsActive = this.AGStorage.get("options_active");
         for (const item of options) {
           const li = new AGElement("li", `ag-options`);
           li.toHTMLElement().setAttribute("ag-title", item.label);
@@ -788,7 +794,7 @@
             }
             li.setAttr("ag-active", "true");
             const agTitle = li.getAttr("ag-title");
-            if (agTitle) this.globalStorage.set("options_active", agTitle);
+            if (agTitle) this.AGStorage.set("options_active", agTitle);
           };
           if (item.label == agOptionsActive) {
             setTimeout(() => li.toHTMLElement().click(), 0);
