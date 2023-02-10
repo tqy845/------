@@ -53,13 +53,36 @@
     ): boolean;
   }
 
-  abstract class AStorage extends AMethods {}
+  abstract class AStorage extends AMethods {
+    protected abstract setStorage(
+      key: string,
+      value: string | object,
+      type: "local" | "session",
+    ): void;
 
-  abstract class AAg<T> extends AStorage {}
+    protected abstract getStorage(
+      key: string,
+      type: "local" | "session",
+      parse: true | false,
+    ): string | object | null;
 
-  class Ag<T> extends AAg<T> implements IRequest {
-    protected element: T | undefined;
+    protected abstract increaseStorage(
+      key: string,
+      type: "local" | "session",
+    ): number;
 
+    protected abstract removeStorage(
+      key: string,
+      type: "local" | "session",
+    ): void;
+
+    protected abstract clearStorage(): void;
+  }
+
+  abstract class AAg extends AStorage {}
+
+  class Ag extends AAg implements IRequest {
+    // 爱果方法
     protected createGlobalErrorHandler() {
       window.addEventListener("unhandledrejection", (event) => {
         console.log(event);
@@ -180,33 +203,153 @@
       return true;
     }
 
+    // 爱果存储
+    protected setStorage(
+      key: string,
+      value: number | string | object,
+      type: "local" | "session" = "local",
+    ): void {
+      key = "AG_STORAGE_".concat(key.toUpperCase());
+      if (value instanceof Object) value = JSON.stringify(value);
+      type === "local"
+        ? localStorage.setItem(key, String(value))
+        : sessionStorage.setItem(key, String(value));
+    }
+    protected getStorage(
+      key: string,
+      type: "local" | "session" = "local",
+      parse: boolean = false,
+    ): string | object | null {
+      key = "AG_STORAGE_".concat(key.toUpperCase());
+      let result =
+        type === "local"
+          ? localStorage.getItem(key)
+          : sessionStorage.getItem(key);
+      return parse && result ? JSON.parse(result) : result;
+    }
+    protected increaseStorage(key: string, type: "local" | "session"): number {
+      const ITEM = this.getStorage(key);
+      const VALUE = Number(ITEM);
+      if (isNaN(VALUE)) throw new Error("error:非数字不可自增");
+      this.setStorage(key, VALUE + 1, type);
+      return Number(this.getStorage(key));
+    }
+    protected removeStorage(key: string, type: "local" | "session"): void {
+      key = "AG_STORAGE_".concat(key.toUpperCase());
+      type === "local"
+        ? localStorage.removeItem(key)
+        : sessionStorage.removeItem(key);
+    }
+    protected clearStorage(): void {
+      const handler = (instance: Storage) => {
+        Object.keys(instance).forEach((item) => {
+          if (item.startsWith("AG_STORAGE_")) {
+            instance.removeItem(item);
+          }
+        });
+      };
+      handler(localStorage);
+      handler(sessionStorage);
+    }
+
+    // 爱果接口
     request(url: string, params: object, ...args: any): Promise<IResponse<{}>> {
       throw new Error("Method not implemented.");
     }
   }
 
-  abstract class APanel<T> extends Ag<T> {
+  abstract class AUser {
+    protected abstract uid: string;
+    protected abstract nick: string;
+    protected abstract address: string;
+    protected abstract password: string;
+  }
+
+  class User extends AUser {
+    uid: string;
+    nick: string;
+    address: string;
+    password: string;
+    kami: string;
+
+    constructor(params: any) {
+      super();
+      const init = {
+        uid: "",
+        nick: "未登录",
+        address: "",
+        password: "",
+        kami: "0/0",
+      };
+      const { uid, nick, address, password, kami } = params || init;
+      this.uid = uid || init.uid;
+      this.nick = nick || init.nick;
+      this.address = address || init.address;
+      this.password = password || init.password;
+      this.kami = kami || init.kami;
+    }
+
+    static isUser(params: object | null | string): boolean {
+      if (!(params instanceof Object)) return false;
+      const keys = Object.keys(params);
+      if (
+        keys.length != 4 ||
+        !keys.includes("uid") ||
+        !keys.includes("nick") ||
+        !keys.includes("address") ||
+        !keys.includes("password")
+      )
+        return false;
+      return true;
+    }
+
+    static coverText(
+      text: string | number,
+      leftShow: number,
+      rightShow: number,
+    ) {
+      const str = String(text);
+      const result = `${str.substring(0, leftShow)}...${str.substring(
+        str.length - rightShow,
+        str.length,
+      )}`;
+      return result;
+    }
+  }
+
+  abstract class APanel<T> extends Ag {
+    protected element: T | undefined;
+    protected abstract globalStyles: string;
     protected abstract mount(): void;
   }
 
   class PanelImpl extends APanel<HTMLElement> {
+    protected globalStyles: string = "";
     private static instance: PanelImpl;
     private panel: HTMLElement;
+    private user: User;
     private constructor(panelName: string) {
       super();
+
+      // 初始化爱果全局异常监听事件
       this.createGlobalErrorHandler();
 
+      // 初始化爱果全局样式
       const style = this.getElement("style");
-      const globalStyle = `
+      this.globalStyles += `
         li.ag-options[agactive="true"] { color:orange;  }
         li.ag-options:hover { color:orange; }
         li.ag-options { color:#999999; }
         `;
       this.setElementStyleOrText(style, {
-        innerHTML: globalStyle,
+        innerHTML: this.globalStyles,
       });
       this.addToElement(style, document.head, "bottom");
 
+      // 初始化爱果用户信息
+      this.user = new User(this.getStorage("user", "local", true));
+
+      // 初始化爱果面板
       const panel = this.getElement("div", panelName);
       this.panel = panel;
       this.setElementStyleOrText(panel, {
@@ -248,8 +391,10 @@
         });
 
         const rowTowItem = this.getElement("span");
+        console.log(this.user);
+
         this.setElementStyleOrText(rowTowItem, {
-          textContent: "谭期元",
+          textContent: this.user.nick,
           height: "80px",
           width: "80px",
           backgroundColor: "#121212",
@@ -265,7 +410,7 @@
 
         const rowThree = this.getElement("div");
         this.setElementStyleOrText(rowThree, {
-          textContent: "16...63",
+          textContent: User.coverText(this.user.uid, 3, 3),
           height: "20px",
           lineHeight: "20px",
           color: "#bfbfbf",
@@ -277,8 +422,7 @@
 
         const rowFour = this.getElement("div");
         this.setElementStyleOrText(rowFour, {
-          innerHTML:
-            "卡密次数: 1/40 <span style='color:#2579cd;cursor:pointer'>说明</span>",
+          innerHTML: `卡密次数: ${this.user.kami} <span style='color:#2579cd;cursor:pointer'>说明</span>`,
           height: "20px",
           lineHeight: "20px",
           textAlign: "center",
@@ -405,8 +549,10 @@
           marginTop: "20px",
         });
         this.addToElement(menu, columnLeft, "bottom");
+        const agOptionsActive = this.getStorage("options_active");
         for (const item of options) {
-          const li = this.getElement("li", "ag-options");
+          const li = this.getElement("li", `ag-options`);
+          li.setAttribute("ag-title", item.label);
           this.setElementStyleOrText(li, {
             textContent: item.label,
             cursor: "pointer",
@@ -425,8 +571,13 @@
             this.setElementStyleOrText(li, {
               agActive: "true",
             });
-            console.log("完成...");
+            const agTitle = li.getAttribute("ag-title");
+            if (agTitle) this.setStorage("options_active", agTitle);
+            console.log(agTitle);
           };
+          if (item.label == agOptionsActive) {
+            setTimeout(() => li.click(), 0);
+          }
           this.addToElement(li, menu, "bottom");
         }
       }
