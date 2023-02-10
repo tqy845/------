@@ -11,46 +11,177 @@
     data: T;
   }
 
-  abstract class AMethods {
-    protected abstract createGlobalErrorHandler(): void;
-
-    protected abstract getElement(
-      tagName: string,
-      tagId?: string,
-      tagClass?: string,
-    ): HTMLElement;
-
-    protected abstract setElementStyleOrText(
-      element: HTMLElement,
-      attributes: object,
+  abstract class AAGElement {
+    protected abstract setStyle(
+      attributes: { [key: string]: string },
       important: "important" | undefined,
     ): boolean;
 
-    protected abstract getElementStyle(
-      element: HTMLElement,
-      ...attributes: Array<string>
-    ): { [key: string]: string };
+    protected abstract setText(text: string): void;
 
-    protected abstract addToElement(
-      element: HTMLElement,
-      mountElement: HTMLElement,
+    protected abstract setAttr(
+      key: string,
+      value: boolean | string | number,
+    ): void;
+
+    protected abstract getStyle(...attributes: Array<string>): {
+      [key: string]: string;
+    };
+    protected abstract getAttr(key: string): string;
+
+    protected abstract mountElementTo(
+      mountElement: AGElement | HTMLElement,
+      append: boolean,
       position: "top" | "bottom" | "insert",
-      insertBefore?: HTMLElement,
-      append?: boolean,
+      insertBefore?: HTMLElement | AGElement,
     ): boolean;
 
-    protected abstract addToElements(
-      mountElement: HTMLElement,
-      position: "top" | "bottom" | "insert",
-      insertBefore?: HTMLElement,
-      append?: boolean,
-      ...element: Array<HTMLElement>
-    ): boolean;
+    protected abstract toHTMLElement(): HTMLElement;
+  }
 
-    protected abstract mountElementToAG(
-      element: HTMLElement,
-      mountName: string,
-    ): boolean;
+  class AGElement extends AAGElement {
+    private element: HTMLElement;
+
+    constructor(tagName: string, tagClass?: string, tagId?: string) {
+      super();
+      this.element = document.createElement(tagName);
+      if (tagClass) this.element.setAttribute("class", tagClass);
+      if (tagId) this.element.setAttribute("class", tagId);
+    }
+
+    toHTMLElement(): HTMLElement {
+      return this.element;
+    }
+
+    setAttr(key: string, value: boolean | string | number): void {
+      this.element.setAttribute(key, String(value));
+    }
+
+    setStyle(
+      attributes: { [key: string]: string },
+      important?: "important",
+    ): boolean {
+      const keys = Object.keys(attributes);
+      if (!keys.length) return false;
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(this.element.style, key)) {
+          this.element.style.setProperty(
+            key.replace(/([A-Z])/g, "-$1").toLowerCase(),
+            attributes[key],
+            important,
+          );
+        }
+      }
+      return true;
+    }
+
+    setText(text: string): void {
+      this.element.innerHTML = text;
+    }
+
+    getStyle(...attributes: Array<string>): { [key: string]: string } {
+      if (!attributes.length) return {};
+      const result: { [key: string]: string } = {};
+      const elementStyle = window.getComputedStyle(this.element, null);
+      for (const key of attributes) {
+        switch (key) {
+          case "innerHTML":
+            result[key] = this.element.innerHTML;
+            break;
+          case "textContent":
+            result[key] = this.element.textContent || "";
+            break;
+          case "innerText":
+            result[key] = this.element.innerText;
+            break;
+          default:
+            if (Object.prototype.hasOwnProperty.call(elementStyle, key)) {
+              result[key] = elementStyle.getPropertyValue(key);
+            }
+        }
+      }
+      return result;
+    }
+
+    getAttr(key: string) {
+      return String(this.element.getAttribute(key));
+    }
+
+    mountElementTo(
+      mountElement: HTMLElement | AGElement,
+      append: boolean = false,
+      position: "top" | "bottom" | "insert" = "bottom",
+      insertBefore?: HTMLElement | AGElement | undefined,
+    ): boolean {
+      if (!mountElement) return false;
+      if (mountElement instanceof AGElement)
+        mountElement = mountElement.element;
+      if (insertBefore && insertBefore instanceof AGElement)
+        insertBefore = insertBefore.element;
+      if (!append) {
+        let selector = "";
+        if (this.element.id) selector = `#${this.element.id}`;
+        if (this.element.className) selector = `.${this.element.className}`;
+        if (selector)
+          document.querySelectorAll(selector).forEach((item) => item.remove());
+      }
+      switch (position) {
+        case "top":
+          mountElement.prepend(this.element);
+          break;
+        case "bottom":
+          mountElement.append(this.element);
+          break;
+        case "insert":
+          if (insertBefore) {
+            mountElement.insertBefore(this.element, insertBefore);
+          } else new Error("error:insertBefore cannot be empty...");
+          break;
+      }
+      return true;
+    }
+
+    static mountElementsTo(
+      elements: AGElement[] | HTMLElement[],
+      mountElement: AGElement | HTMLElement,
+      position: "top" | "bottom" | "insert" = "bottom",
+      insertBefore?: HTMLElement | AGElement | undefined,
+    ): boolean {
+      if (!mountElement || !elements) return false;
+      elements.forEach((element) => {
+        if (element instanceof AGElement) element = element.element;
+        if (mountElement instanceof AGElement)
+          mountElement = mountElement.element;
+        if (insertBefore && insertBefore instanceof AGElement)
+          insertBefore = insertBefore.element;
+        switch (position) {
+          case "top":
+            mountElement.prepend(element);
+            break;
+          case "bottom":
+            mountElement.append(element);
+            break;
+          case "insert":
+            if (insertBefore) {
+              mountElement.insertBefore(element, insertBefore);
+            } else {
+              throw new Error("error:insertBefore cannot be empty...");
+            }
+            break;
+        }
+      });
+      return true;
+    }
+
+    static toAGElement(element: HTMLElement) {
+      const ele = new AGElement(element.tagName);
+      ele.element = element;
+      return ele;
+    }
+  }
+
+  abstract class AMethods {
+    protected abstract createGlobalErrorHandler(): void;
   }
 
   abstract class AStorage extends AMethods {
@@ -91,116 +222,6 @@
       window.onerror = (message, source, lineno, colno, error) => {
         console.log(message, error);
       };
-    }
-
-    protected getElement(
-      tagName: string,
-      tagClass?: string,
-      tagId?: string,
-    ): HTMLElement {
-      const tag = document.createElement(tagName);
-      if (tagId) tag.setAttribute("id", tagId);
-      if (tagClass) tag.setAttribute("class", tagClass);
-
-      return tag;
-    }
-
-    protected setElementStyleOrText(
-      element: HTMLElement,
-      attributes: { [key: string]: string },
-      important: "important" | undefined = undefined,
-    ): boolean {
-      const keys = Object.keys(attributes);
-      if (!element || !keys.length) return false;
-      const storage = ["textContent", "innerHTML", "innerText"];
-      const selectorStorage = ["id", "class", "name", "agActive"];
-      for (const key of keys) {
-        if (storage.includes(key)) element.innerHTML = attributes[key];
-        else if (selectorStorage.includes(key))
-          element.setAttribute(key, attributes[key]);
-        else if (Object.prototype.hasOwnProperty.call(element.style, key)) {
-          element.style.setProperty(
-            key.replace(/([A-Z])/g, "-$1").toLowerCase(),
-            attributes[key],
-            important,
-          );
-        }
-      }
-      return true;
-    }
-
-    protected getElementStyle(
-      element: HTMLElement,
-      ...attributes: Array<string>
-    ): { [key: string]: string } {
-      if (!element || !attributes.length) return {};
-      const storage = ["textContent", "innerHTML", "innerText"];
-      const resultAttributes: { [key: string]: string } = {};
-      for (const key of attributes) {
-        // @ts-expect-error
-        if (storage.includes(key)) resultAttributes[key] = element[key];
-        else if (Object.prototype.hasOwnProperty.call(element.style, key)) {
-          resultAttributes[key] = window
-            .getComputedStyle(element, null)
-            .getPropertyValue(key);
-        }
-      }
-      return resultAttributes;
-    }
-
-    protected addToElement(
-      element: HTMLElement,
-      mountElement: HTMLElement,
-      position: "top" | "bottom" | "insert" = "top",
-      insertBefore?: HTMLElement,
-      append: boolean = false,
-    ): boolean {
-      if (!element || !mountElement) return false;
-      if (!append)
-        if (element.id) document.querySelector(`#${element.id}`)?.remove();
-        else if (element.className) {
-          const elem = document.querySelectorAll(`.${element.className}`);
-          for (const item of elem) item.remove();
-        } else if (mountElement.contains(element))
-          mountElement.removeChild(element);
-
-      switch (position) {
-        case "top":
-          mountElement.prepend(element);
-          break;
-        case "bottom":
-          mountElement.append(element);
-          break;
-        case "insert":
-          if (insertBefore) mountElement.insertBefore(element, insertBefore);
-          else new Error("error:insertBefore cannot be empty...");
-          break;
-      }
-      return true;
-    }
-
-    protected addToElements(
-      mountElement: HTMLElement,
-      position: "top" | "bottom" | "insert" = "top",
-      insertBefore?: HTMLElement,
-      append?: boolean,
-      ...element: Array<HTMLElement>
-    ): boolean {
-      for (const item of element) {
-        this.addToElement(item, mountElement, position, insertBefore, append);
-      }
-      return true;
-    }
-
-    protected mountElementToAG(
-      element: HTMLElement,
-      mountName: string,
-    ): boolean {
-      if (!element || !mountName) return false;
-      const body: any = document.body;
-      if (!body.AG) body.AG = {};
-      body.AG[mountName] = element;
-      return true;
     }
 
     // 爱果存储
@@ -328,9 +349,9 @@
   class PanelImpl extends APanel<HTMLElement> {
     protected globalStyles: string = "";
     private static instance: PanelImpl;
-    private panel: HTMLElement;
-    private draw: HTMLElement;
-    private statusBar: HTMLElement;
+    private panel: AGElement;
+    private draw: AGElement;
+    private statusBar: AGElement;
     private user: User;
     private constructor(panelName: string) {
       super();
@@ -339,26 +360,23 @@
       this.createGlobalErrorHandler();
 
       // 初始化爱果全局样式
-      const style = this.getElement("style");
+      const style = new AGElement("style");
       this.globalStyles += `
-        li.ag-options[agactive="true"] { color:orange;  }
+        li.ag-options[ag-active="true"] { color:orange;  }
         li.ag-options:hover { color:orange; }
         li.ag-options { color:#999999; }
 
         .ag-row-margin-10 { margin:10px 0;}
         `;
-      this.setElementStyleOrText(style, {
-        innerHTML: this.globalStyles,
-      });
-      this.addToElement(style, document.head, "bottom");
+      style.setText(this.globalStyles);
+      style.mountElementTo(document.head);
 
       // 初始化爱果用户信息
       this.user = new User(this.getStorage("user", "local", true));
 
       // 初始化爱果面板
-      const panel = this.getElement("div", panelName);
-      this.panel = panel;
-      this.setElementStyleOrText(panel, {
+      const panel = new AGElement("panel", panelName);
+      panel.setStyle({
         width: "25px",
         height: "450px",
         position: "fixed",
@@ -372,12 +390,13 @@
         color: "#999999",
         borderRadius: "0 5px 5px 0",
       });
+      this.panel = panel;
 
       // 初始化画板
-      this.draw = this.getElement("div");
+      this.draw = new AGElement("div");
 
       // 初始化状态栏
-      this.statusBar = this.getElement("div", "ag-draw");
+      this.statusBar = new AGElement("div", "ag-draw");
 
       // 菜单列表
       const options: Array<{ label: string; event: Function }> = [
@@ -385,8 +404,8 @@
           label: "前言",
           event: () => {
             console.log("前言 begin");
-            const ulItem = this.getElement("ul", "ag-draw");
-            this.setElementStyleOrText(ulItem, {
+            const ulItem = new AGElement("ul", "ag-draw");
+            ulItem.setStyle({
               paddingLeft: "20px",
               cursor: "default",
               overflowX: "hidden",
@@ -419,17 +438,17 @@
               },
             ];
             for (const item of messages) {
-              const liItem = this.getElement("li");
+              const liItem = new AGElement("li");
               const { textContent, color, backgroundColor } = item;
-              this.setElementStyleOrText(liItem, {
-                textContent,
+              liItem.setText(textContent);
+              liItem.setStyle({
                 color,
                 backgroundColor,
                 margin: "5px 0",
               });
-              this.addToElement(liItem, ulItem, "bottom");
+              liItem.mountElementTo(ulItem);
             }
-            this.addToElement(ulItem, this.draw, "bottom");
+            ulItem.mountElementTo(this.draw);
             console.log("前言 end");
           },
         },
@@ -438,14 +457,14 @@
           event: () => {
             console.log("开始...");
             const divStatusBar = this.statusBar;
-            this.setElementStyleOrText(divStatusBar, {
+            this.statusBar.setStyle({
               height: "30px",
               lineHeight: "30px",
             });
             this.setStatusBarText("未开始");
 
-            const ulItem = this.getElement("ul", "ag-draw");
-            this.setElementStyleOrText(ulItem, {
+            const ulItem = new AGElement("ul", "ag-draw");
+            ulItem.setStyle({
               fontSize: "15px",
               cursor: "default",
               overflowX: "hidden",
@@ -461,9 +480,9 @@
 
             this.appendMessage(`程序已就绪...`);
 
-            const buttonItem = this.getElement("button", "ag-draw");
-            this.setElementStyleOrText(buttonItem, {
-              textContent: "开始任务",
+            const buttonItem = new AGElement("button", "ag-draw");
+            buttonItem.setText("开始任务");
+            buttonItem.setStyle({
               backgroundColor: "#e22b2b00",
               color: "orange",
               border: "1px solid orange",
@@ -475,151 +494,128 @@
               width: "auto",
               cursor: "pointer",
             });
-            buttonItem.onclick = () => {
+            buttonItem.toHTMLElement().onclick = () => {
               console.log("点击..");
             };
 
-            this.addToElement(divStatusBar, this.draw, "bottom");
+            divStatusBar.mountElementTo(this.draw);
 
-            this.addToElement(ulItem, this.draw, "bottom", undefined, true);
+            ulItem.mountElementTo(this.draw, true);
 
-            this.addToElement(buttonItem, this.draw, "bottom", undefined, true);
+            buttonItem.mountElementTo(this.draw, true);
           },
         },
         {
           label: "配置",
           event: () => {
             console.log("配置　begin");
-            const formItem = this.getElement("form", "ag-draw");
-            this.setElementStyleOrText(formItem, {
+            const formItem = new AGElement("form", "ag-draw");
+            formItem.setStyle({
               display: "inline-flex",
               flexWrap: "wrap",
               justifyContent: "space-around",
             });
 
-            const addressDivItem = this.getElement("div", "ag-row-margin-10");
-            this.setElementStyleOrText(addressDivItem, {
+            const addressDivItem = new AGElement("div", "ag-row-margin-10");
+            addressDivItem.setStyle({
               maxWidth: "175px",
             });
-            const addressDivNameItem = this.getElement("div");
-            this.setElementStyleOrText(addressDivNameItem, {
-              textContent: "地址：",
-            });
-            const addressInputItem = this.getElement("input");
-            this.setElementStyleOrText(addressInputItem, {
+
+            const addressDivNameItem = new AGElement("div");
+            addressDivNameItem.setText("地址：");
+
+            const addressInputItem = new AGElement("input");
+            addressInputItem.setStyle({
               height: "30px",
               border: "1px solid orange",
               background: "#ff000000",
               borderRadius: "3px",
             });
 
-            this.addToElement(addressDivNameItem, addressDivItem, "bottom");
-            this.addToElement(addressInputItem, addressDivItem, "bottom");
-            this.addToElement(addressDivItem, formItem, "bottom");
+            addressDivNameItem.mountElementTo(addressDivItem);
+            addressInputItem.mountElementTo(addressDivItem);
+            addressDivItem.mountElementTo(formItem);
 
-            const passwordDivItem = this.getElement("div", "ag-row-margin-10");
-            this.setElementStyleOrText(passwordDivItem, {
+            const passwordDivItem = new AGElement("div", "ag-row-margin-10");
+            passwordDivItem.setStyle({
               maxWidth: "175px",
             });
-            const passwordDivNameItem = this.getElement("div");
-            this.setElementStyleOrText(passwordDivNameItem, {
-              textContent: "卡密：",
-            });
-            const passwordInputItem = this.getElement("input");
-            passwordInputItem.setAttribute("type", "password");
-            this.setElementStyleOrText(passwordInputItem, {
+            const passwordDivNameItem = new AGElement("div");
+            passwordDivNameItem.setText("卡密：");
+
+            const passwordInputItem = new AGElement("input");
+            passwordInputItem.setAttr("type", "password");
+            passwordInputItem.setStyle({
               height: "30px",
               border: "1px solid orange",
               background: "#ff000000",
               borderRadius: "3px",
             });
 
-            this.addToElement(passwordDivNameItem, passwordDivItem, "bottom");
-            this.addToElement(passwordInputItem, passwordDivItem, "bottom");
-            this.addToElement(passwordDivItem, formItem, "bottom");
+            passwordDivNameItem.mountElementTo(passwordDivItem);
+            passwordInputItem.mountElementTo(passwordDivItem);
+            passwordDivItem.mountElementTo(formItem);
 
-            const questionBankDivItem = this.getElement(
+            const questionBankDivItem = new AGElement(
               "div",
               "ag-row-margin-10",
             );
-            this.setElementStyleOrText(questionBankDivItem, {
-              maxWidth: "175px",
+            questionBankDivItem.setStyle({
+              width: "175px",
             });
-            const questionBankNameDivItem = this.getElement("div");
-            this.setElementStyleOrText(questionBankNameDivItem, {
-              textContent: "题库（配置）：",
-            });
-            const questionBankInputItem = this.getElement("input");
-            questionBankInputItem.setAttribute("type", "password");
-            this.setElementStyleOrText(questionBankInputItem, {
+            const questionBankNameDivItem = new AGElement("div");
+            questionBankNameDivItem.setText("题库（配置）：");
+
+            const questionBankInputItem = new AGElement("input");
+            questionBankInputItem.setAttr("type", "password");
+            questionBankInputItem.setStyle({
               height: "30px",
               border: "1px solid orange",
               background: "#ff000000",
               borderRadius: "3px",
-              width: "60%",
+              width: "110px",
             });
-            const questionBankSettingsDivItem = this.getElement("div");
-            this.setElementStyleOrText(questionBankSettingsDivItem, {
-              innerHTML: `<input type='checkbox'>启用`,
-              display: "inline-flex",
-              alignItems: "center",
+            const questionBankSettingsDivItem = new AGElement("div");
+            questionBankSettingsDivItem.setText(`<input type='checkbox'>启用`);
+            questionBankSettingsDivItem.setStyle({
+              display: "initial",
               padding: "0 5px",
             });
 
-            this.addToElement(
-              questionBankNameDivItem,
-              questionBankDivItem,
-              "bottom",
-            );
-            this.addToElement(
-              questionBankInputItem,
-              questionBankDivItem,
-              "bottom",
-            );
-            this.addToElement(
-              questionBankSettingsDivItem,
-              questionBankDivItem,
-              "bottom",
-            );
-            this.addToElement(questionBankDivItem, formItem, "bottom");
+            questionBankNameDivItem.mountElementTo(questionBankDivItem);
+            questionBankInputItem.mountElementTo(questionBankDivItem);
+            questionBankSettingsDivItem.mountElementTo(questionBankDivItem);
+            questionBankDivItem.mountElementTo(formItem);
 
-            const divItem = this.getElement("div", "ag-row-margin-10");
-            this.setElementStyleOrText(divItem, {
+            const divItem = new AGElement("div", "ag-row-margin-10");
+            divItem.setStyle({
               width: "175px",
             });
 
-            this.addToElement(divItem, formItem, "bottom");
+            divItem.mountElementTo(formItem);
+            formItem.mountElementTo(this.draw);
 
-            this.addToElement(formItem, this.draw, "bottom");
-
-            const divSplitLine = this.getElement("div", "ag-draw");
-            this.setElementStyleOrText(divSplitLine, {
+            const divSplitLine = new AGElement("div", "ag-draw");
+            divSplitLine.setStyle({
               width: "100%",
               height: "1px",
               background: "#999999",
               margin: "10px 0",
             });
-            this.addToElement(
-              divSplitLine,
-              this.draw,
-              "bottom",
-              undefined,
-              true,
-            );
+            divSplitLine.mountElementTo(this.draw, true);
 
-            const divTasksItem = this.getElement("table", "ag-draw");
-            this.setElementStyleOrText(divTasksItem, {
+            const divTasksItem = new AGElement("table", "ag-draw");
+            divTasksItem.setStyle({
               margin: "10px 0",
               textAlign: "center",
             });
-            this.setElementStyleOrText(divTasksItem, {
-              innerHTML: `
+            divTasksItem.setText(`
                 <tr>
                   <th>任务</th>
                   <th>启用</th>
                 </tr>
-              `,
-            });
+              `);
+
             const tasks = [
               {
                 name: "每日答题",
@@ -649,33 +645,24 @@
             ];
             tasks.forEach((item) => {
               const { name } = item;
-              const taskItemTr = this.getElement("tr");
-              const taskNameTd = this.getElement("td");
-              const taskStatusTd = this.getElement("td");
+              const taskItemTr = new AGElement("tr");
+              const taskNameTd = new AGElement("td");
+              const taskStatusTd = new AGElement("td");
 
-              this.setElementStyleOrText(taskNameTd, {
-                textContent: name,
-              });
-              this.addToElement(taskNameTd, taskItemTr);
+              taskNameTd.setText(name);
+              taskNameTd.mountElementTo(taskItemTr);
 
-              const taskItemInput = this.getElement("input");
-              taskItemInput.setAttribute("type", "checkbox");
-              this.setElementStyleOrText(taskItemInput, {
+              const taskItemInput = new AGElement("input");
+              taskItemInput.setAttr("type", "checkbox");
+              taskItemInput.setStyle({
                 width: "14px",
                 height: "14px",
               });
-              this.addToElement(taskItemInput, taskStatusTd);
-              this.addToElement(taskStatusTd, taskItemTr, "bottom");
-
-              this.addToElement(taskItemTr, divTasksItem, "bottom");
+              taskItemInput.mountElementTo(taskStatusTd);
+              taskStatusTd.mountElementTo(taskItemTr);
+              taskItemTr.mountElementTo(divTasksItem);
             });
-            this.addToElement(
-              divTasksItem,
-              this.draw,
-              "bottom",
-              undefined,
-              true,
-            );
+            divTasksItem.mountElementTo(this.draw, true);
             console.log("配置　end");
           },
         },
@@ -683,25 +670,24 @@
           label: "捐助",
           event: () => {
             console.log("捐助 begin");
-            const divItem = this.getElement("div", "ag-draw");
+            const divItem = new AGElement("div", "ag-draw");
 
-            const pItem = this.getElement("p");
-            this.setElementStyleOrText(pItem, {
-              textContent: `到底为什么要开学考试，真的很打咩好吗！！！`,
+            const pItem = new AGElement("p");
+            pItem.setText(`到底为什么要开学考试，真的很打咩好吗！！！`);
+            pItem.setStyle({
               fontSize: "50px",
               color: "orange",
             });
-            this.addToElement(pItem, divItem);
-
-            this.addToElement(divItem, this.draw);
+            pItem.mountElementTo(divItem);
+            divItem.mountElementTo(this.draw);
             console.log("捐助 end");
           },
         },
       ];
 
       // 左列
-      const columnLeft = this.getElement("div");
-      this.setElementStyleOrText(columnLeft, {
+      const columnLeft = new AGElement("div");
+      columnLeft.setStyle({
         backgroundColor: "#292929",
         width: "150px",
         height: "100%",
@@ -709,24 +695,23 @@
       });
 
       {
-        const rowOne = this.getElement("div");
-        this.setElementStyleOrText(rowOne, {
+        const rowOne = new AGElement("div");
+        rowOne.setStyle({
           height: "30px",
         });
 
-        const rowTwo = this.getElement("div");
-        this.setElementStyleOrText(rowTwo, {
+        const rowTwo = new AGElement("div");
+        rowTwo.setStyle({
           height: "100px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         });
 
-        const rowTowItem = this.getElement("span");
+        const rowTowItem = new AGElement("span");
         console.log(this.user);
-
-        this.setElementStyleOrText(rowTowItem, {
-          textContent: this.user.nick,
+        rowTowItem.setText(this.user.nick);
+        rowTowItem.setStyle({
           height: "80px",
           width: "80px",
           backgroundColor: "#121212",
@@ -738,11 +723,11 @@
           fontSize: "20px",
           cursor: "default",
         });
-        this.addToElement(rowTowItem, rowTwo);
+        rowTowItem.mountElementTo(rowTwo);
 
-        const rowThree = this.getElement("div");
-        this.setElementStyleOrText(rowThree, {
-          textContent: User.coverText(this.user.uid, 3, 3),
+        const rowThree = new AGElement("div");
+        rowThree.setText(User.coverText(this.user.uid, 3, 3));
+        rowThree.setStyle({
           height: "20px",
           lineHeight: "20px",
           color: "#bfbfbf",
@@ -752,9 +737,11 @@
           cursor: "default",
         });
 
-        const rowFour = this.getElement("div");
-        this.setElementStyleOrText(rowFour, {
-          innerHTML: `卡密次数: ${this.user.kami} <span style='color:#2579cd;cursor:pointer'>说明</span>`,
+        const rowFour = new AGElement("div");
+        rowFour.setText(
+          `卡密次数: ${this.user.kami} <span style='color:#2579cd;cursor:pointer'>说明</span>`,
+        );
+        rowFour.setStyle({
           height: "20px",
           lineHeight: "20px",
           textAlign: "center",
@@ -764,70 +751,61 @@
           cursor: "default",
         });
 
-        this.addToElements(
+        AGElement.mountElementsTo(
+          [rowOne, rowTwo, rowThree, rowFour],
           columnLeft,
-          "bottom",
-          undefined,
-          false,
-          rowOne,
-          rowTwo,
-          rowThree,
-          rowFour,
         );
 
-        const menu = this.getElement("ul");
-        this.setElementStyleOrText(menu, {
+        const menu = new AGElement("ul");
+        menu.setStyle({
           listStyleType: "none",
           letterSpacing: "10px",
           paddingLeft: "0",
           textAlign: "center",
           marginTop: "20px",
         });
-        this.addToElement(menu, columnLeft, "bottom");
+        menu.mountElementTo(columnLeft);
+
         const agOptionsActive = this.getStorage("options_active");
         for (const item of options) {
-          const li = this.getElement("li", `ag-options`);
-          li.setAttribute("ag-title", item.label);
-          this.setElementStyleOrText(li, {
-            textContent: item.label,
+          const li = new AGElement("li", `ag-options`);
+          li.toHTMLElement().setAttribute("ag-title", item.label);
+          li.setText(item.label);
+          li.setStyle({
             cursor: "pointer",
             height: "40px",
             lineHeight: "40px",
             fontSize: "16px",
           });
-          li.onclick = () => {
+          li.toHTMLElement().onclick = () => {
             item.event();
-            const ele = document.querySelector("[agActive=true]");
+            const ele = document.querySelector("[ag-active=true]");
             if (ele && ele instanceof HTMLElement) {
-              this.setElementStyleOrText(ele, {
-                agActive: "false",
-              });
+              AGElement.toAGElement(ele).setAttr("ag-active", false);
             }
-            this.setElementStyleOrText(li, {
-              agActive: "true",
-            });
-            const agTitle = li.getAttribute("ag-title");
+            li.setAttr("ag-active", "true");
+            const agTitle = li.getAttr("ag-title");
             if (agTitle) this.setStorage("options_active", agTitle);
           };
           if (item.label == agOptionsActive) {
-            setTimeout(() => li.click(), 0);
+            setTimeout(() => li.toHTMLElement().click(), 0);
           }
-          this.addToElement(li, menu, "bottom");
+          li.mountElementTo(menu);
         }
       }
 
       // 中列
-      const columnCenter = this.getElement("div");
-      this.setElementStyleOrText(columnCenter, {
+      const columnCenter = new AGElement("div");
+      columnCenter.setStyle({
         width: "425px",
         height: "100%",
         display: "none",
       });
 
       {
-        const rowOne = this.getElement("div");
-        this.setElementStyleOrText(rowOne, {
-          textContent: "爱果 - 学XX国 v23.X.X",
+        const rowOne = new AGElement("div");
+        rowOne.setText(`爱果 - 学XX国 v23.X.X`);
+        rowOne.setStyle({
           height: "30px",
           lineHeight: "30px",
           textAlign: "center",
@@ -835,27 +813,20 @@
         });
 
         const rowTwo = this.draw;
-        this.setElementStyleOrText(rowTwo, {
+        rowTwo.setStyle({
           height: "420px",
           display: "flex",
           padding: "0 15px",
           flexDirection: "column",
         });
 
-        this.addToElements(
-          columnCenter,
-          "bottom",
-          undefined,
-          false,
-          rowOne,
-          rowTwo,
-        );
+        AGElement.mountElementsTo([rowOne, rowTwo], columnCenter);
       }
 
       // 右列
-      const columnRight = this.getElement("div");
-      this.setElementStyleOrText(columnRight, {
-        textContent: "展开控制台",
+      const columnRight = new AGElement("div");
+      columnRight.setText(`展开控制台`);
+      columnRight.setStyle({
         backgroundColor: "#121212",
         width: "25px",
         height: "100%",
@@ -870,24 +841,22 @@
         borderLeft: "1px solid #434343",
         borderRadius: "0 5px 5px 0",
       });
-      columnRight.onclick = () => {
-        const styles = this.getElementStyle(panel, "textContent");
+      columnRight.toHTMLElement().onclick = () => {
+        const styles = panel.getStyle("textContent");
         const status = styles["textContent"].includes("展开");
         let width = status ? "600px" : "25px";
         let textContent = status ? "收起控制台" : "展开控制台";
         let display = status ? "block" : "none";
-        this.setElementStyleOrText(panel, {
+        panel.setStyle({
           width,
         });
         setTimeout(
           () => {
-            this.setElementStyleOrText(columnRight, {
-              textContent,
-            });
-            this.setElementStyleOrText(columnLeft, {
+            columnRight.setText(textContent);
+            columnLeft.setStyle({
               display,
             });
-            this.setElementStyleOrText(columnCenter, {
+            columnCenter.setStyle({
               display,
             });
           },
@@ -895,15 +864,7 @@
         );
       };
 
-      this.addToElements(
-        panel,
-        "bottom",
-        undefined,
-        false,
-        columnLeft,
-        columnCenter,
-        columnRight,
-      );
+      AGElement.mountElementsTo([columnLeft, columnCenter, columnRight], panel);
     }
 
     public static getInstance(panelName?: string) {
@@ -915,30 +876,25 @@
 
     public mount(): void {
       console.log("panel:挂载 begin");
-      const result: boolean =
-        this.addToElement(this.panel, document.body, "top") &&
-        this.mountElementToAG(this.panel, "panel");
+      const result = this.panel.mountElementTo(document.body, false, "top");
       console.log(`panel:挂载${result ? "成功" : "失败"} end`);
     }
 
     public setStatusBarText(text: string): void {
       Promise.resolve().then(() => {
-        this.setElementStyleOrText(this.statusBar, {
-          innerHTML: `状态栏：${text}`,
-        });
+        this.statusBar.setText(`状态栏：${text}`);
       });
     }
 
     public appendMessage(message: string): void {
-      const liItem = this.getElement("li");
-      this.setElementStyleOrText(liItem, {
-        textContent: `${new Date().toLocaleTimeString()}：${message}`,
+      const liItem = new AGElement("li");
+      liItem.setText(`${new Date().toLocaleTimeString()}：${message}`);
+      liItem.setStyle({
         margin: "5px 0",
       });
       Promise.resolve().then(() => {
-        const ul = this.draw.children[1];
-        if (ul && ul instanceof HTMLElement)
-          this.addToElement(liItem, ul, "bottom");
+        const ul = this.draw.toHTMLElement().children[1];
+        if (ul && ul instanceof HTMLElement) liItem.mountElementTo(ul);
       });
     }
   }
