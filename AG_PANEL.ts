@@ -602,9 +602,6 @@
             });
 
             const addressDivItem = new AGElement("div", "ag-row-margin-10");
-            addressDivItem.setStyle({
-              maxWidth: "175px",
-            });
 
             const addressDivNameItem = new AGElement("div");
             addressDivNameItem.setText("地址：");
@@ -622,9 +619,7 @@
             addressDivItem.mountElementTo(formItem);
 
             const passwordDivItem = new AGElement("div", "ag-row-margin-10");
-            passwordDivItem.setStyle({
-              maxWidth: "175px",
-            });
+
             const passwordDivNameItem = new AGElement("div");
             passwordDivNameItem.setText("卡密：");
 
@@ -645,11 +640,12 @@
               "div",
               "ag-row-margin-10",
             );
-            questionBankDivItem.setStyle({
-              width: "175px",
-            });
             const questionBankNameDivItem = new AGElement("div");
-            questionBankNameDivItem.setText("题库（配置）：");
+            questionBankNameDivItem.setText("题库：");
+            questionBankNameDivItem.setStyle({
+              display: "flex",
+              justifyContent: "space-between",
+            });
 
             const questionBankInputItem = new AGElement("input");
             questionBankInputItem.setAttr("type", "password");
@@ -658,7 +654,6 @@
               border: "1px solid orange",
               background: "#ff000000",
               borderRadius: "3px",
-              width: "110px",
             });
             const questionBankSettingsDivItem = new AGElement("div");
             questionBankSettingsDivItem.setText(`<input type='checkbox'>启用`);
@@ -669,7 +664,7 @@
 
             questionBankNameDivItem.mountElementTo(questionBankDivItem);
             questionBankInputItem.mountElementTo(questionBankDivItem);
-            questionBankSettingsDivItem.mountElementTo(questionBankDivItem);
+            questionBankSettingsDivItem.mountElementTo(questionBankNameDivItem);
             questionBankDivItem.mountElementTo(formItem);
 
             const divItem = new AGElement("div", "ag-row-margin-10");
