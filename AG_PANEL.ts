@@ -152,6 +152,7 @@
     ): boolean;
 
     protected abstract toHTMLElement(): HTMLElement;
+    protected abstract toHTMLInputElement(): HTMLInputElement;
   }
 
   class AGElement extends AAGElement {
@@ -166,6 +167,10 @@
 
     toHTMLElement(): HTMLElement {
       return this.element;
+    }
+
+    toHTMLInputElement(): HTMLInputElement {
+      return <HTMLInputElement>this.element;
     }
 
     setAttr(key: string, value: boolean | string | number): void {
@@ -445,7 +450,7 @@
       this.registerAGErrorListenerHandler();
 
       // 初始化爱果全局样式
-      const style = new AGElement("style");
+      const style = new AGElement("style","ag-style");
       this.AGStyles += `
         li.ag-options[ag-active="true"] { color:orange;  }
         li.ag-options:hover { color:orange; }
@@ -594,7 +599,9 @@
           label: "配置",
           event: () => {
             console.log("配置　begin");
-            const formItem = new AGElement("form", "ag-draw");
+
+            const divRowOne = new AGElement("div", "ag-draw");
+            const formItem = new AGElement("form");
             formItem.setStyle({
               display: "inline-flex",
               flexWrap: "wrap",
@@ -673,21 +680,15 @@
             });
 
             divItem.mountElementTo(formItem);
-            formItem.mountElementTo(this.draw);
+            formItem.mountElementTo(divRowOne);
 
-            const divSplitLine = new AGElement("div", "ag-draw");
-            divSplitLine.setStyle({
-              width: "100%",
-              height: "1px",
-              background: "#999999",
-              margin: "10px 0",
-            });
-            divSplitLine.mountElementTo(this.draw, true);
+            this.splitLine(divRowOne);
 
-            const divTasksItem = new AGElement("table", "ag-draw");
+            const divTasksItem = new AGElement("table");
             divTasksItem.setStyle({
               margin: "10px 0",
               textAlign: "center",
+              width: "100%",
             });
             divTasksItem.setText(`
                 <tr>
@@ -696,31 +697,35 @@
                 </tr>
               `);
 
-            const tasks = [
+            const tasks: Array<{
+              name: string;
+              event: Function;
+              element: undefined | HTMLInputElement;
+            }> = [
               {
                 name: "每日答题",
-                status: false,
                 event: () => {},
+                element: undefined,
               },
               {
                 name: "专项答题",
-                status: false,
                 event: () => {},
+                element: undefined,
               },
               {
                 name: "每周答题",
-                status: false,
                 event: () => {},
+                element: undefined,
               },
               {
                 name: "视听学习/时长",
-                status: false,
                 event: () => {},
+                element: undefined,
               },
               {
                 name: "我要选读文章",
-                status: false,
                 event: () => {},
+                element: undefined,
               },
             ];
             tasks.forEach((item) => {
@@ -733,6 +738,7 @@
               taskNameTd.mountElementTo(taskItemTr);
 
               const taskItemInput = new AGElement("input");
+              item.element = taskItemInput.toHTMLInputElement();
               taskItemInput.setAttr("type", "checkbox");
               taskItemInput.setStyle({
                 width: "14px",
@@ -742,7 +748,76 @@
               taskStatusTd.mountElementTo(taskItemTr);
               taskItemTr.mountElementTo(divTasksItem);
             });
-            divTasksItem.mountElementTo(this.draw, true);
+
+            divTasksItem.mountElementTo(divRowOne, true);
+            divRowOne.mountElementTo(this.draw);
+            this.splitLine(this.draw);
+
+            const divRowTwo = new AGElement("div", "ag-draw ag-row-margin-10");
+            divRowTwo.setStyle({
+              display: "flex",
+              justifyContent: "space-evenly",
+            });
+            const buttonVerification = new AGElement("button");
+            buttonVerification.setText("验证");
+            buttonVerification.setStyle({
+              backgroundColor: "#e22b2b00",
+              color: "rgb(0 201 0)",
+              border: "1px solid rgb(0 201 0)",
+              borderRadius: "10px",
+              height: "28px",
+              fontSize: "14px",
+              width: "100px",
+              cursor: "pointer",
+            });
+            buttonVerification.toHTMLElement().onclick = () => {
+              console.log("验证配置");
+            };
+
+            const buttonSave = new AGElement("button");
+            buttonSave.setText("保存");
+            buttonSave.setStyle({
+              backgroundColor: "#e22b2b00",
+              color: "orange",
+              border: "1px solid orange",
+              borderRadius: "10px",
+              height: "28px",
+              fontSize: "14px",
+              width: "100px",
+              cursor: "pointer",
+            });
+            buttonSave.toHTMLElement().onclick = () => {
+              console.log("保存配置");
+              const getSettingsItem = () => {
+                const result = [];
+
+                const 地址 = addressInputItem.toHTMLInputElement().value;
+                const 卡密 = passwordInputItem.toHTMLInputElement().value;
+                const 题库 = {
+                  value: questionBankInputItem.toHTMLInputElement().value,
+                  status:
+                    questionBankSettingsDivItem.toHTMLInputElement().value,
+                };
+                result.push({ 地址 });
+                result.push({ 卡密 });
+                result.push({ 题库 });
+                result.push({
+                  任务: tasks.map((item) => {
+                    const { name, element } = item;
+                    return { [name]: element?.checked };
+                  }),
+                });
+
+                return result;
+              };
+
+              console.log(getSettingsItem());
+            };
+
+            buttonVerification.mountElementTo(divRowTwo);
+            buttonSave.mountElementTo(divRowTwo);
+            divRowTwo.mountElementTo(this.draw, true);
+
             console.log("配置　end");
           },
         },
@@ -750,16 +825,113 @@
           label: "捐助",
           event: () => {
             console.log("捐助 begin");
-            const divItem = new AGElement("div", "ag-draw");
-
-            const pItem = new AGElement("p");
-            pItem.setText(`到底为什么要开学考试，真的很打咩好吗！！！`);
-            pItem.setStyle({
-              fontSize: "50px",
-              color: "orange",
+            const ulItem = new AGElement("ul", "ag-draw");
+            ulItem.setStyle({
+              paddingLeft: "20px",
+              cursor: "default",
+              overflowX: "hidden",
+              margin: "0",
             });
-            pItem.mountElementTo(divItem);
-            divItem.mountElementTo(this.draw);
+            const messages = [
+              {
+                textContent: `基于TS重制的爱果面板开源了，喜欢代码或者对这块感兴趣的可以自己去看，Github地址：<a href='https://github.com/tqy845/AG_Currency'>https://github.com/tqy845/AG_Currency</a>`,
+                color: "",
+                backgroundColor: "",
+              },
+              {
+                textContent: `教程/资源（Ｂ站）：<a href='https://space.bilibili.com/421403163'>全栈在学谭同学</a>`,
+                color: "",
+                backgroundColor: "",
+              },
+              {
+                textContent: `教程/资源（抖音）：<a href='https://www.douyin.com/user/MS4wLjABAAAAy6urBE8O_sJ_DSMS_QR7Uu-Oxdb0LbaAH88UAGFB0dlfY2kbymHlUpj5vi88Rhys'>全栈在学谭同学</a>`,
+                color: "",
+                backgroundColor: "",
+              },
+              {
+                textContent: `作品：<a href='https://qm.qq.com/cgi-bin/qm/qr?k=k1CvaaHVA96aedx5Ied0MdfEHBEG1Jx1&jump_from=webapi&authKey=yIYZHJNp9SdDb5FReSkLibAmYn5aX+3gyK/yeyABc0F+UXt/vMZiJm1VxTZu5zcn'>学X通/智X树/学XX国</a>`,
+                color: "",
+                backgroundColor: "",
+              },
+            ];
+            for (const item of messages) {
+              const liItem = new AGElement("li");
+              const { textContent, color, backgroundColor } = item;
+              liItem.setText(textContent);
+              liItem.setStyle({
+                color,
+                backgroundColor,
+                margin: "5px 0",
+              });
+              liItem.mountElementTo(ulItem);
+            }
+            ulItem.mountElementTo(this.draw);
+
+            this.splitLine(this.draw);
+
+            const divDonation = new AGElement("div");
+            divDonation.mountElementTo(this.draw, true);
+
+            const divItem = new AGElement("div", "ag-draw ag-row-margin-10");
+            divItem.setStyle({
+              display: "flex",
+              justifyContent: "space-evenly",
+            });
+            const imgArr = [
+              {
+                name: `微信`,
+                src: "https://i.328888.xyz/2023/01/30/8UXlo.png",
+                color: `#05C160`,
+              },
+              {
+                name: `支付宝`,
+                src: "https://i.328888.xyz/2023/01/30/8UpYA.png",
+                color: `#1777FF`,
+              },
+            ];
+
+            for (const item of imgArr) {
+              const button = new AGElement("button");
+              button.setText(item.name);
+              button.setStyle({
+                background: item.color,
+                borderRadius: "5px",
+                border: "1px solid white",
+                color: "white",
+                height: "25px",
+                lineHeight: "23px",
+                cursor: "pointer",
+              });
+              button.toHTMLElement().onclick = () => {
+                const divDonationItem = new AGElement(
+                  "div",
+                  "ag-draw donation",
+                );
+                divDonationItem.setStyle({
+                  display: "inline-flex",
+                });
+                const spanMessage = new AGElement("span");
+                spanMessage.setText(
+                  "插件本身免费，但是你不会介意捐助我一杯咖啡or奶茶的吧？捐助的时候记得备注联系方式或邮箱，卡密会在我收到捐助后第一时间给你。对了，不同的捐助会有区别对待（额外的奖励等），包括但不限于本插件。",
+                );
+                spanMessage.setStyle({
+                  backgroundColor: "orange",
+                  color: "white",
+                });
+                const imgPhoto = new AGElement("img");
+                imgPhoto.setAttr("src", item.src);
+                imgPhoto.setStyle({
+                  width: "50%",
+                  height: "50%",
+                });
+                spanMessage.mountElementTo(divDonationItem);
+                imgPhoto.mountElementTo(divDonationItem);
+                divDonationItem.mountElementTo(divDonation);
+              };
+              button.mountElementTo(divItem);
+            }
+
+            divItem.mountElementTo(this.draw, true);
             console.log("捐助 end");
           },
         },
@@ -976,6 +1148,17 @@
         const ul = this.draw.toHTMLElement().children[1];
         if (ul && ul instanceof HTMLElement) liItem.mountElementTo(ul);
       });
+    }
+
+    private splitLine(mountElement: AGElement): void {
+      const divSplitLine = new AGElement("div", "ag-draw");
+      divSplitLine.setStyle({
+        width: "100%",
+        height: "1px",
+        background: "#999999",
+        margin: "10px 0",
+      });
+      divSplitLine.mountElementTo(mountElement, true);
     }
   }
 
