@@ -1,6 +1,6 @@
 "use strict";
 // ==UserScript==
-// @name         New Userscript
+// @name         爱果面板TS重制版
 // @namespace    http://tampermonkey.net/
 // @version      0.1
 // @description  try to take over the world!
