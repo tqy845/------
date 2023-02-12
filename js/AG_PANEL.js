@@ -316,40 +316,38 @@
             form;
             inputs = {};
             constructor() {
-                this.form = document.createElement("form");
-                this.form.classList.add("ag-form");
+                this.form = new AGElement("form", "ag-form");
             }
             addInput(type, labelText, value, id, checkboxLabelText) {
-                const input = document.createElement("input");
-                input.type = type;
-                input.value = value ? value.toString() : "";
+                const input = new AGElement("input");
+                input.setAttr("type", type);
+                input.setAttr("value", value ? value.toString() : "");
                 if (id) {
-                    input.id = id;
+                    input.setAttr("id", id);
                 }
                 this.inputs[id || `input-${Object.keys(this.inputs).length}`] = input;
-                const line = document.createElement("div");
-                line.classList.add("form-line");
-                const label = document.createElement("label");
-                label.innerText = labelText || "";
-                line.appendChild(label);
-                line.appendChild(input);
+                const line = new AGElement("div", "form-line");
+                const label = new AGElement("label");
+                label.setText(labelText || "");
+                label.elementMountTo(line);
+                input.elementMountTo(line);
                 if (checkboxLabelText) {
-                    const checkbox = document.createElement("input");
-                    checkbox.type = "checkbox";
-                    const checkboxLabel = document.createElement("label");
-                    checkboxLabel.innerText = checkboxLabelText;
-                    const checkboxContainer = document.createElement("div");
-                    checkboxContainer.appendChild(checkbox);
-                    checkboxContainer.appendChild(checkboxLabel);
-                    line.appendChild(checkboxContainer);
+                    const checkbox = new AGElement("input");
+                    checkbox.setAttr("type", "checkbox");
+                    const checkboxLabel = new AGElement("label");
+                    checkboxLabel.setText(checkboxLabelText);
+                    const checkboxContainer = new AGElement("div");
+                    checkbox.elementMountTo(checkboxContainer);
+                    checkboxLabel.elementMountTo(checkboxContainer);
+                    checkboxContainer.elementMountTo(line);
                 }
-                this.form.appendChild(line);
+                line.elementMountTo(this.form);
                 return true;
             }
             getInputsData() {
                 const result = {};
                 Object.keys(this.inputs).forEach((key) => {
-                    result[key] = this.inputs[key].value;
+                    result[key] = this.inputs[key].convertToHTMLInputElement().value;
                 });
                 return result;
             }
@@ -362,33 +360,32 @@
             headers = [];
             rows = [];
             constructor() {
-                this.table = document.createElement("table");
-                this.table.classList.add(`ag-table`);
+                this.table = new AGElement("table", "ag-table");
             }
             addHeader(...header) {
                 this.headers = header;
-                const headerRow = document.createElement("tr");
+                const headerRow = new AGElement("tr");
                 header.forEach((headerText) => {
-                    const headerCell = document.createElement("th");
-                    headerCell.innerText = headerText;
-                    headerRow.appendChild(headerCell);
+                    const headerCell = new AGElement("th");
+                    headerCell.setText(headerText);
+                    headerCell.elementMountTo(headerRow);
                 });
-                this.table.appendChild(headerRow);
+                headerRow.elementMountTo(this.table);
             }
             addRow(...row) {
                 this.rows.push(row);
-                const rowElement = document.createElement("tr");
+                const rowElement = new AGElement("tr");
                 row.forEach((cellItem) => {
-                    const cell = document.createElement("td");
+                    const cell = new AGElement("td");
                     if (cellItem instanceof HTMLInputElement)
-                        cell.appendChild(cellItem);
+                        new AGElement(cellItem).elementMountTo(cell);
                     else if (cellItem instanceof AGElement)
                         cellItem.elementMountTo(cell);
                     else
-                        cell.innerHTML = cellItem;
-                    rowElement.appendChild(cell);
+                        cell.setText(cellItem);
+                    cell.elementMountTo(rowElement);
                 });
-                this.table.appendChild(rowElement);
+                rowElement.elementMountTo(this.table);
             }
             getInstance() {
                 return this.table;
@@ -648,11 +645,11 @@
                         formSettings.addInput("text", "地址");
                         formSettings.addInput("password", "卡密");
                         formSettings.addInput("password", "题库", undefined, undefined, "启用");
-                        new AGElement(formSettings.getInstance()).elementMountTo(divRowOne);
+                        formSettings.getInstance().elementMountTo(divRowOne);
                         this.splitLine(divRowOne);
                         const tableSettings = new AGComponent.Table();
                         tableSettings.addHeader("任务", "启用");
-                        new AGElement(tableSettings.getInstance()).elementMountTo(divRowOne);
+                        tableSettings.getInstance().elementMountTo(divRowOne);
                         const tasks = [
                             {
                                 name: "每日答题",

@@ -437,12 +437,11 @@
 
   class AGComponent extends AAGComponent {
     static Form = class Form {
-      private form: HTMLFormElement;
-      private inputs: { [key: string]: HTMLInputElement } = {};
+      private form: AGElement;
+      private inputs: { [key: string]: AGElement } = {};
 
       constructor() {
-        this.form = document.createElement("form") as HTMLFormElement;
-        this.form.classList.add("ag-form");
+        this.form = new AGElement("form", "ag-form");
       }
 
       public addInput(
@@ -452,41 +451,40 @@
         id?: string,
         checkboxLabelText?: string,
       ): boolean {
-        const input = document.createElement("input") as HTMLInputElement;
-        input.type = type;
-        input.value = value ? value.toString() : "";
+        const input = new AGElement("input");
+        input.setAttr("type", type);
+        input.setAttr("value", value ? value.toString() : "");
         if (id) {
-          input.id = id;
+          input.setAttr("id", id);
         }
         this.inputs[id || `input-${Object.keys(this.inputs).length}`] = input;
 
-        const line = document.createElement("div");
-        line.classList.add("form-line");
+        const line = new AGElement("div", "form-line");
 
-        const label = document.createElement("label");
-        label.innerText = labelText || "";
-        line.appendChild(label);
-        line.appendChild(input);
+        const label = new AGElement("label");
+        label.setText(labelText || "");
+        label.elementMountTo(line);
+        input.elementMountTo(line);
 
         if (checkboxLabelText) {
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          const checkboxLabel = document.createElement("label");
-          checkboxLabel.innerText = checkboxLabelText;
-          const checkboxContainer = document.createElement("div");
-          checkboxContainer.appendChild(checkbox);
-          checkboxContainer.appendChild(checkboxLabel);
-          line.appendChild(checkboxContainer);
+          const checkbox = new AGElement("input");
+          checkbox.setAttr("type", "checkbox");
+          const checkboxLabel = new AGElement("label");
+          checkboxLabel.setText(checkboxLabelText);
+          const checkboxContainer = new AGElement("div");
+          checkbox.elementMountTo(checkboxContainer);
+          checkboxLabel.elementMountTo(checkboxContainer);
+          checkboxContainer.elementMountTo(line);
         }
 
-        this.form.appendChild(line);
+        line.elementMountTo(this.form);
         return true;
       }
 
       public getInputsData(): { [key: string]: string } {
         const result: { [key: string]: string } = {};
         Object.keys(this.inputs).forEach((key) => {
-          result[key] = this.inputs[key].value;
+          result[key] = this.inputs[key].convertToHTMLInputElement().value;
         });
         return result;
       }
@@ -497,36 +495,36 @@
     };
 
     static Table = class Table {
-      private table: HTMLTableElement;
+      private table: AGElement;
       private headers: Array<string> = [];
       private rows: Array<Array<string | AGElement | HTMLInputElement>> = [];
       constructor() {
-        this.table = document.createElement("table") as HTMLTableElement;
-        this.table.classList.add(`ag-table`);
+        this.table = new AGElement("table", "ag-table");
       }
 
       public addHeader(...header: Array<string>) {
         this.headers = header;
-        const headerRow = document.createElement("tr");
+        const headerRow = new AGElement("tr");
         header.forEach((headerText) => {
-          const headerCell = document.createElement("th");
-          headerCell.innerText = headerText;
-          headerRow.appendChild(headerCell);
+          const headerCell = new AGElement("th");
+          headerCell.setText(headerText);
+          headerCell.elementMountTo(headerRow);
         });
-        this.table.appendChild(headerRow);
+        headerRow.elementMountTo(this.table);
       }
 
       public addRow(...row: Array<string | AGElement | HTMLInputElement>) {
         this.rows.push(row);
-        const rowElement = document.createElement("tr");
+        const rowElement = new AGElement("tr");
         row.forEach((cellItem) => {
-          const cell = document.createElement("td");
-          if (cellItem instanceof HTMLInputElement) cell.appendChild(cellItem);
+          const cell = new AGElement("td");
+          if (cellItem instanceof HTMLInputElement)
+            new AGElement(cellItem).elementMountTo(cell);
           else if (cellItem instanceof AGElement) cellItem.elementMountTo(cell);
-          else cell.innerHTML = cellItem;
-          rowElement.appendChild(cell);
+          else cell.setText(cellItem);
+          cell.elementMountTo(rowElement);
         });
-        this.table.appendChild(rowElement);
+        rowElement.elementMountTo(this.table);
       }
 
       public getInstance() {
@@ -841,16 +839,14 @@
               undefined,
               "启用",
             );
-            new AGElement(formSettings.getInstance()).elementMountTo(divRowOne);
+            formSettings.getInstance().elementMountTo(divRowOne);
 
             this.splitLine(divRowOne);
 
             const tableSettings = new AGComponent.Table();
             tableSettings.addHeader("任务", "启用");
 
-            new AGElement(tableSettings.getInstance()).elementMountTo(
-              divRowOne,
-            );
+            tableSettings.getInstance().elementMountTo(divRowOne);
 
             const tasks: Array<{
               name: string;
