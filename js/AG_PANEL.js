@@ -319,7 +319,7 @@
                 this.form = document.createElement("form");
                 this.form.classList.add("ag-form");
             }
-            addInput(type, value, id) {
+            addInput(type, labelText, value, id, checkboxLabelText) {
                 const input = document.createElement("input");
                 input.type = type;
                 input.value = value ? value.toString() : "";
@@ -327,13 +327,135 @@
                     input.id = id;
                 }
                 this.inputs[id || `input-${Object.keys(this.inputs).length}`] = input;
-                this.form.appendChild(input);
+                const line = document.createElement("div");
+                line.classList.add("form-line");
+                const label = document.createElement("label");
+                label.innerText = labelText || "";
+                line.appendChild(label);
+                line.appendChild(input);
+                if (checkboxLabelText) {
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    const checkboxLabel = document.createElement("label");
+                    checkboxLabel.innerText = checkboxLabelText;
+                    const checkboxContainer = document.createElement("div");
+                    checkboxContainer.appendChild(checkbox);
+                    checkboxContainer.appendChild(checkboxLabel);
+                    line.appendChild(checkboxContainer);
+                }
+                this.form.appendChild(line);
                 return true;
+            }
+            getInputsData() {
+                const result = {};
+                Object.keys(this.inputs).forEach((key) => {
+                    result[key] = this.inputs[key].value;
+                });
+                return result;
             }
             getInstance() {
                 return this.form;
             }
         };
+        static Table = class Table {
+            table;
+            headers = [];
+            rows = [];
+            constructor() {
+                this.table = document.createElement("table");
+                this.table.classList.add(`ag-table`);
+            }
+            addHeader(...header) {
+                this.headers = header;
+                const headerRow = document.createElement("tr");
+                header.forEach((headerText) => {
+                    const headerCell = document.createElement("th");
+                    headerCell.innerText = headerText;
+                    headerRow.appendChild(headerCell);
+                });
+                this.table.appendChild(headerRow);
+            }
+            addRow(...row) {
+                this.rows.push(row);
+                const rowElement = document.createElement("tr");
+                row.forEach((cellItem) => {
+                    const cell = document.createElement("td");
+                    if (cellItem instanceof HTMLInputElement)
+                        cell.appendChild(cellItem);
+                    else if (cellItem instanceof AGElement)
+                        cellItem.elementMountTo(cell);
+                    else
+                        cell.innerHTML = cellItem;
+                    rowElement.appendChild(cell);
+                });
+                this.table.appendChild(rowElement);
+            }
+            getInstance() {
+                return this.table;
+            }
+        };
+    }
+    // 爱果样式
+    class AAGStyles {
+    }
+    class AGStyles extends AAGStyles {
+        AGStyles = `
+        li.ag-options[ag-active="true"] { color:orange;  }
+        li.ag-options:hover { color:orange; }
+        li.ag-options { color:#999999; }
+        .ag-row-margin-10 { margin:10px 0;}
+
+        .ag-form {
+          display: flex;
+          flex-wrap:wrap;
+        }
+
+        .ag-form .form-line{
+          margin:8px 5px;
+          height:30px;
+        }
+
+        .ag-form .form-line div{
+          position:relative;
+          top:-25px;
+          left:130px;
+          width:60px;
+          line-height:16px;
+        }
+
+        .ag-form .form-line div input{
+          height:15px;
+          width:15px;
+        }
+
+        .ag-form label {
+          padding:0 3px;
+        }
+
+        .ag-form input {
+          height:30px;
+          border: 1px solid orange;
+          border-radius: 5px;
+          background:rgba(255, 0, 0, 0) !important;
+          width:150px;
+        }
+
+        .ag-table{
+          width:100%;
+          text-align:center;
+        }
+
+        `;
+        element;
+        constructor() {
+            super();
+            const style = new AGElement("style", "ag-style");
+            style.setText(this.AGStyles);
+            this.element = style;
+        }
+        mount() {
+            this.element.elementMountTo(document.head);
+        }
     }
     // 爱果用户
     class AUser {
@@ -394,31 +516,7 @@
             // 初始化爱果全局异常监听事件
             this.handlerAGError();
             // 初始化爱果全局样式
-            const style = new AGElement("style", "ag-style");
-            this.AGStyles += `
-        li.ag-options[ag-active="true"] { color:orange;  }
-        li.ag-options:hover { color:orange; }
-        li.ag-options { color:#999999; }
-        .ag-row-margin-10 { margin:10px 0;}
-
-        .ag-form {
-          padding: 20px;
-          background-color: #f2f2f2;
-          border-radius: 5px;
-          box-shadow: 0px 0px 10px #ccc;
-        }
-
-        .ag-form input {
-          padding: 10px;
-          margin-bottom: 20px;
-          width: 100%;
-          box-sizing: border-box;
-          border-radius: 5px;
-          border: 1px solid #ccc;
-        }
-        `;
-            style.setText(this.AGStyles);
-            style.elementMountTo(document.head);
+            new AGStyles().mount();
             // 初始化爱果用户信息
             this.user = new User(this.AGStorage.get("user", "local", true));
             // 初始化爱果面板
@@ -546,89 +644,15 @@
                     event: () => {
                         console.log("配置　begin");
                         const divRowOne = new AGElement("div", "ag-draw");
-                        // const formSettings = new AGComponent.Form();
-                        // formSettings.addInput("text");
-                        // new AGElement(formSettings.getInstance()).elementMountTo(divRowOne);
-                        const formItem = new AGElement("form");
-                        formItem.setStyle({
-                            display: "inline-flex",
-                            flexWrap: "wrap",
-                            justifyContent: "space-around",
-                        });
-                        const addressDivItem = new AGElement("div", "ag-row-margin-10");
-                        const addressDivNameItem = new AGElement("div");
-                        addressDivNameItem.setText("地址：");
-                        const addressInputItem = new AGElement("input");
-                        addressInputItem.setStyle({
-                            height: "30px",
-                            border: "1px solid orange",
-                            background: "#ff000000",
-                            borderRadius: "3px",
-                            maxWidth: "175px",
-                        });
-                        addressDivNameItem.elementMountTo(addressDivItem);
-                        addressInputItem.elementMountTo(addressDivItem);
-                        addressDivItem.elementMountTo(formItem);
-                        const passwordDivItem = new AGElement("div", "ag-row-margin-10");
-                        const passwordDivNameItem = new AGElement("div");
-                        passwordDivNameItem.setText("卡密：");
-                        const passwordInputItem = new AGElement("input");
-                        passwordInputItem.setAttr("type", "password");
-                        passwordInputItem.setStyle({
-                            height: "30px",
-                            border: "1px solid orange",
-                            background: "#ff000000",
-                            borderRadius: "3px",
-                            maxWidth: "175px",
-                        });
-                        passwordDivNameItem.elementMountTo(passwordDivItem);
-                        passwordInputItem.elementMountTo(passwordDivItem);
-                        passwordDivItem.elementMountTo(formItem);
-                        const questionBankDivItem = new AGElement("div", "ag-row-margin-10");
-                        const questionBankNameDivItem = new AGElement("div");
-                        questionBankNameDivItem.setText("题库：");
-                        questionBankNameDivItem.setStyle({
-                            display: "flex",
-                            justifyContent: "space-between",
-                        });
-                        const questionBankInputItem = new AGElement("input");
-                        questionBankInputItem.setAttr("type", "password");
-                        questionBankInputItem.setStyle({
-                            height: "30px",
-                            border: "1px solid orange",
-                            background: "#ff000000",
-                            borderRadius: "3px",
-                            maxWidth: "175px",
-                        });
-                        const questionBankSettingsDivItem = new AGElement("div");
-                        questionBankSettingsDivItem.setText(`<input type='checkbox'>启用`);
-                        questionBankSettingsDivItem.setStyle({
-                            display: "initial",
-                            padding: "0 5px",
-                        });
-                        questionBankNameDivItem.elementMountTo(questionBankDivItem);
-                        questionBankInputItem.elementMountTo(questionBankDivItem);
-                        questionBankSettingsDivItem.elementMountTo(questionBankNameDivItem);
-                        questionBankDivItem.elementMountTo(formItem);
-                        const divItem = new AGElement("div", "ag-row-margin-10");
-                        divItem.setStyle({
-                            width: "175px",
-                        });
-                        divItem.elementMountTo(formItem);
-                        formItem.elementMountTo(divRowOne);
+                        const formSettings = new AGComponent.Form();
+                        formSettings.addInput("text", "地址");
+                        formSettings.addInput("password", "卡密");
+                        formSettings.addInput("password", "题库", undefined, undefined, "启用");
+                        new AGElement(formSettings.getInstance()).elementMountTo(divRowOne);
                         this.splitLine(divRowOne);
-                        const divTasksItem = new AGElement("table");
-                        divTasksItem.setStyle({
-                            margin: "10px 0",
-                            textAlign: "center",
-                            width: "100%",
-                        });
-                        divTasksItem.setText(`
-                <tr>
-                  <th>任务</th>
-                  <th>启用</th>
-                </tr>
-              `);
+                        const tableSettings = new AGComponent.Table();
+                        tableSettings.addHeader("任务", "启用");
+                        new AGElement(tableSettings.getInstance()).elementMountTo(divRowOne);
                         const tasks = [
                             {
                                 name: "每日答题",
@@ -658,23 +682,10 @@
                         ];
                         tasks.forEach((item) => {
                             const { name } = item;
-                            const taskItemTr = new AGElement("tr");
-                            const taskNameTd = new AGElement("td");
-                            const taskStatusTd = new AGElement("td");
-                            taskNameTd.setText(name);
-                            taskNameTd.elementMountTo(taskItemTr);
-                            const taskItemInput = new AGElement("input");
-                            item.element = taskItemInput.convertToHTMLInputElement();
-                            taskItemInput.setAttr("type", "checkbox");
-                            taskItemInput.setStyle({
-                                width: "14px",
-                                height: "14px",
-                            });
-                            taskItemInput.elementMountTo(taskStatusTd);
-                            taskStatusTd.elementMountTo(taskItemTr);
-                            taskItemTr.elementMountTo(divTasksItem);
+                            const checkbox = new AGElement("input");
+                            checkbox.setAttr("type", "checkbox");
+                            tableSettings.addRow(name, checkbox);
                         });
-                        divTasksItem.elementMountTo(divRowOne, true);
                         divRowOne.elementMountTo(this.draw);
                         this.splitLine(this.draw);
                         const divRowTwo = new AGElement("div", "ag-draw ag-row-margin-10");
