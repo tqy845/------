@@ -67,7 +67,6 @@
   // 爱果存储
   interface IAGStorage {
     set(key: string, value: string | object, type: "local" | "session"): void;
-
     get(
       key: string,
       type: "local" | "session",
@@ -103,6 +102,7 @@
         ? localStorage.setItem(key, String(value))
         : sessionStorage.setItem(key, String(value));
     }
+
     get(
       key: string,
       type: "local" | "session" = "local",
@@ -705,7 +705,7 @@
       super();
 
       // 初始化爱果全局异常监听事件
-      this.handlerAGError();
+      // this.handlerAGError();
 
       // 初始化爱果全局样式
       new AGStyles().mount();
@@ -903,10 +903,22 @@
                 element: undefined,
               },
             ];
+            const localTableSettings: any = this.AGStorage.get(
+              "table_settings",
+              "local",
+              true,
+            );
             tasks.forEach((item) => {
               const { name } = item;
               const checkbox = new AGElement("input");
               checkbox.setAttr("type", "checkbox");
+              if (
+                localTableSettings &&
+                typeof localTableSettings === "object"
+              ) {
+                (checkbox.toHTMLElement() as HTMLInputElement).checked =
+                  localTableSettings[name];
+              }
               tableSettings.addRow(name, checkbox);
             });
 
@@ -948,22 +960,13 @@
             });
             buttonSave.toHTMLElement().onclick = () => {
               console.log("保存配置");
-              const getSettingsItem = () => {
-                const result = [];
-                console.log(formSettings.getInputsData());
-                console.log(tableSettings.getInputsData());
-
-                result.push({
-                  tasks: tasks.map((item) => {
-                    const { name, element } = item;
-                    return { [name]: element?.checked };
-                  }),
-                });
-
-                return result;
-              };
-
-              console.log(getSettingsItem());
+              console.log(formSettings.getInputsData());
+              console.log(tableSettings.getInputsData());
+              this.AGStorage.set("form_settings", formSettings.getInputsData());
+              this.AGStorage.set(
+                "table_settings",
+                tableSettings.getInputsData(),
+              );
             };
 
             buttonVerification.elementMountTo(divRowTwo);
