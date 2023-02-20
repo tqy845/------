@@ -166,8 +166,7 @@
       insertBefore?: HTMLElement | AGElement,
     ): boolean;
 
-    protected abstract convertToHTMLElement(): HTMLElement;
-    protected abstract convertToHTMLInputElement(): HTMLInputElement;
+    protected abstract toHTMLElement(): HTMLElement;
   }
 
   class AGElement extends AAGElement {
@@ -202,14 +201,6 @@
           }
         }
       }
-    }
-
-    convertToHTMLElement(): HTMLElement {
-      return this.element as HTMLElement;
-    }
-
-    convertToHTMLInputElement(): HTMLInputElement {
-      return this.element as HTMLInputElement;
     }
 
     setAttr(key: string, value: boolean | string | number): void {
@@ -306,6 +297,10 @@
           break;
       }
       return true;
+    }
+
+    toHTMLElement() {
+      return this.element;
     }
 
     static elementsMountTo(
@@ -448,16 +443,18 @@
         type: string,
         labelText?: string,
         value?: string | number,
+        name?: string,
         id?: string,
         checkboxLabelText?: string,
       ): boolean {
         const input = new AGElement("input");
         input.setAttr("type", type);
         input.setAttr("value", value ? value.toString() : "");
-        if (id) {
-          input.setAttr("id", id);
-        }
-        this.inputs[id || `input-${Object.keys(this.inputs).length}`] = input;
+        if (id) input.setAttr("id", id);
+        if (name) input.setAttr("name", name);
+        this.inputs[
+          labelText || id || `input-${Object.keys(this.inputs).length}`
+        ] = input;
 
         const line = new AGElement("div", "form-line");
 
@@ -481,10 +478,20 @@
         return true;
       }
 
-      public getInputsData(): { [key: string]: string } {
-        const result: { [key: string]: string } = {};
+      public getInputsData(): {
+        [key: string]: { value: string; checkbox: boolean };
+      } {
+        const result: {
+          [key: string]: { value: string; checkbox: boolean };
+        } = {};
         Object.keys(this.inputs).forEach((key) => {
-          result[key] = this.inputs[key].convertToHTMLInputElement().value;
+          const ele = this.inputs[key].toHTMLElement() as HTMLInputElement;
+          const checkboxEle = ele.nextElementSibling
+            ?.firstChild as HTMLInputElement;
+          result[key] = {
+            value: ele.value,
+            checkbox: checkboxEle ? checkboxEle?.checked : false,
+          };
         });
         return result;
       }
@@ -525,6 +532,23 @@
           cell.elementMountTo(rowElement);
         });
         rowElement.elementMountTo(this.table);
+      }
+      getInputsData() {
+        const inputsData: { [key: string]: boolean } = {};
+
+        // 遍历每个行
+        for (let i = 0; i < this.rows.length; i++) {
+          // 从 1 开始以跳过标题行
+          const row = this.rows[i];
+          const label = row[0] as string;
+          const checkbox =
+            row[1] instanceof AGElement
+              ? (row[1].toHTMLElement() as HTMLInputElement).checked
+              : false;
+          inputsData[label] = checkbox;
+        }
+
+        return inputsData;
       }
 
       public getInstance() {
@@ -811,7 +835,7 @@
               width: "auto",
               cursor: "pointer",
             });
-            buttonItem.convertToHTMLElement().onclick = () => {
+            buttonItem.toHTMLElement().onclick = () => {
               console.log("点击..");
             };
 
@@ -906,7 +930,7 @@
               width: "100px",
               cursor: "pointer",
             });
-            buttonVerification.convertToHTMLElement().onclick = () => {
+            buttonVerification.toHTMLElement().onclick = () => {
               console.log("验证配置");
             };
 
@@ -922,27 +946,15 @@
               width: "100px",
               cursor: "pointer",
             });
-            buttonSave.convertToHTMLElement().onclick = () => {
+            buttonSave.toHTMLElement().onclick = () => {
               console.log("保存配置");
               const getSettingsItem = () => {
                 const result = [];
+                console.log(formSettings.getInputsData());
+                console.log(tableSettings.getInputsData());
 
-                // const 地址 =
-                //   addressInputItem.convertToHTMLInputElement().value;
-                // const 卡密 =
-                //   passwordInputItem.convertToHTMLInputElement().value;
-                // const 题库 = {
-                //   value:
-                //     questionBankInputItem.convertToHTMLInputElement().value,
-                //   status:
-                //     questionBankSettingsDivItem.convertToHTMLInputElement()
-                //       .value,
-                // };
-                // result.push({ 地址 });
-                // result.push({ 卡密 });
-                // result.push({ 题库 });
                 result.push({
-                  任务: tasks.map((item) => {
+                  tasks: tasks.map((item) => {
                     const { name, element } = item;
                     return { [name]: element?.checked };
                   }),
@@ -1042,7 +1054,7 @@
                 lineHeight: "23px",
                 cursor: "pointer",
               });
-              button.convertToHTMLElement().onclick = () => {
+              button.toHTMLElement().onclick = () => {
                 const divDonationItem = new AGElement(
                   "div",
                   "ag-draw donation",
@@ -1159,7 +1171,7 @@
         const agOptionsActive = this.AGStorage.get("options_active");
         for (const item of options) {
           const li = new AGElement("li", `ag-options`);
-          li.convertToHTMLElement().setAttribute("ag-title", item.label);
+          li.toHTMLElement().setAttribute("ag-title", item.label);
           li.setText(item.label);
           li.setStyle({
             cursor: "pointer",
@@ -1167,7 +1179,7 @@
             lineHeight: "40px",
             fontSize: "16px",
           });
-          li.convertToHTMLElement().onclick = () => {
+          li.toHTMLElement().onclick = () => {
             item.event();
             const ele = document.querySelector("[ag-active=true]");
             if (ele && ele instanceof HTMLElement) {
@@ -1178,7 +1190,7 @@
             if (agTitle) this.AGStorage.set("options_active", agTitle);
           };
           if (item.label == agOptionsActive) {
-            setTimeout(() => li.convertToHTMLElement().click(), 0);
+            setTimeout(() => li.toHTMLElement().click(), 0);
           }
           li.elementMountTo(menu);
         }
@@ -1231,7 +1243,7 @@
         borderLeft: "1px solid #434343",
         borderRadius: "0 5px 5px 0",
       });
-      columnRight.convertToHTMLElement().onclick = () => {
+      columnRight.toHTMLElement().onclick = () => {
         const styles = panel.getStyle("textContent");
         const status = styles["textContent"].includes("展开");
         let width = status ? "600px" : "25px";
@@ -1283,7 +1295,7 @@
         margin: "5px 0",
       });
       Promise.resolve().then(() => {
-        const ul = this.draw.convertToHTMLElement().querySelector("ul");
+        const ul = this.draw.toHTMLElement().querySelector("ul");
         if (ul && ul instanceof HTMLElement) liItem.elementMountTo(ul);
       });
     }
