@@ -338,6 +338,8 @@
   }
 
   class AGMethods extends AAGMethods {
+    private popupElement: AGElement | undefined;
+
     protected handlerAGError(): void {
       window.addEventListener("error", (event: ErrorEvent) => {
         console.error(event.error);
@@ -384,20 +386,34 @@
     }
 
     protected popup(message: string, title: string = "爱果"): void {
-      const agPopup = new AGElement("div", "ag-popup");
-      const popupNumber = document.querySelectorAll(".ag-popup").length;
-      agPopup.setStyle({ top: `${String(popupNumber * 100)}px` });
-      const apPopupContent = new AGElement("div");
-      apPopupContent.setText(`
-        <h3>${title}<span>x</span></h3>
-        <p>${message}</p>
-      `);
+      if (!this.popupElement) {
+        this.popupElement = new AGElement("div", "ag-popup");
+        this.popupElement.elementMountTo(document.body, true);
+      }
 
-      apPopupContent.elementMountTo(agPopup);
-      agPopup.elementMountTo(document.body, true);
-      setTimeout(() => {
-        // agPopup.toHTMLElement().remove();
+      const apPopupContent = new AGElement("div");
+      const closeSpanEle = new AGElement("span");
+      closeSpanEle.setText("×");
+
+      const titleH3Ele = new AGElement("h3");
+      titleH3Ele.setText(title);
+      const messagePEle = new AGElement("p");
+      messagePEle.setText(message);
+
+      closeSpanEle.elementMountTo(apPopupContent);
+      titleH3Ele.elementMountTo(apPopupContent);
+      messagePEle.elementMountTo(apPopupContent);
+      apPopupContent.elementMountTo(this.popupElement);
+
+      let timer = setTimeout(() => {
+        apPopupContent.toHTMLElement().remove();
       }, 3000);
+
+      closeSpanEle.toHTMLElement().onclick = () => {
+        console.log("关闭...");
+        clearTimeout(timer);
+        apPopupContent.toHTMLElement().remove();
+      };
     }
   }
 
@@ -453,15 +469,6 @@
             else {
               (checkbox.toHTMLElement() as HTMLInputElement).checked = false;
               checkbox.setAttr("disabled", "true");
-            }
-          };
-          // 单击事件
-          checkbox.toHTMLElement().onchange = (e) => {
-            const checked = (e.target as HTMLInputElement).checked;
-            if (checked) {
-              // 只有输入了题库卡密才能启用该选项
-              const ele = input.toHTMLElement() as HTMLInputElement;
-              console.log(ele.value);
             }
           };
 
@@ -568,24 +575,56 @@
 
   class AGStyles extends AAGStyles {
     private AGStyles: string = `
+        .ag-panel{
+          font-size: 15px;
+          width: 25px;
+          height: 450px;
+          position: fixed;
+          z-index: 9999;
+          left: 0;
+          top: 0;
+          background-color: #121212;
+          border: 1px solid #434343;
+          transition: width 0.5s ease;
+          display: flex;
+          color: #999999;
+          border-radius: 0 5px 5px 0;
+        }
+
+
         div.ag-popup{
           position: fixed;
-          height: 100px;
-          width: 100px;
-          background-color: red;
           z-index: 99999;
           top: 0;
           width: 100%;
+        }
+
+        div.ag-popup>div{
+          background-color: #121212;
+          color: white;
+          margin:10px;
+          border: 1px solid  rgb(144 144 144) !important;
+          border-radius:8px;
+        }
+
+        div.ag-popup>div>span{
+           position: absolute;
+           right: 15px;
+           font-size:20px;
+           cursor:pointer;
         }
 
         div.ag-popup>div>h3{
           display: flex;
           justify-content:center;
           font-weight:bold;
+          color:white;
+          padding:3px;
         }
 
         div.ag-popup>div>p{
           padding:0 15px;
+          margin-bottom:5px;
         }
 
         li.ag-options[ag-active="true"] { color:orange;  }
@@ -731,22 +770,7 @@
       this.user = new User(this.AGStorage.get("user", "local", true));
 
       // 初始化爱果面板
-      const panel = new AGElement("panel", panelName);
-      panel.setStyle({
-        fontSize: "15px",
-        width: "25px",
-        height: "450px",
-        position: "fixed",
-        zIndex: "9999",
-        left: "0",
-        top: "0",
-        backgroundColor: "#121212",
-        border: "1px solid #434343",
-        transition: "width 0.5s ease",
-        display: "flex",
-        color: "#999999",
-        borderRadius: "0 5px 5px 0",
-      });
+      const panel = new AGElement("ag-panel", panelName);
       this.panel = panel;
 
       // 初始化画板
@@ -1160,8 +1184,10 @@
           marginTop: "10px",
           cursor: "default",
         });
+        
         rowFour.toHTMLElement().onclick = () => {
-          this.popup("这是一条测试信息...");
+          const num = document.querySelectorAll(`.ag-popup>div`).length + 1;
+          this.popup(`${num} 这是一条测试信息...`);
         };
         AGElement.elementsMountTo([rowOne, rowTwo, rowThree, rowFour], columnLeft);
         const menu = new AGElement("ul");
