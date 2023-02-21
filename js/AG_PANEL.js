@@ -951,7 +951,7 @@
                     marginTop: "20px",
                 });
                 menu.elementMountTo(columnLeft);
-                const agOptionsActive = this.AGStorage.get("options_active");
+                let agOptionsActive = this.AGStorage.get("options_active");
                 for (const item of options) {
                     const li = new AGElement("li", `ag-options`);
                     li.toHTMLElement().setAttribute("ag-title", item.label);
@@ -973,7 +973,8 @@
                         if (agTitle)
                             this.AGStorage.set("options_active", agTitle);
                     };
-                    if (item.label == agOptionsActive) {
+                    if (!agOptionsActive || item.label == agOptionsActive) {
+                        agOptionsActive = "1";
                         setTimeout(() => li.toHTMLElement().click(), 0);
                     }
                     li.elementMountTo(menu);
