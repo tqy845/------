@@ -324,14 +324,18 @@
             titleH3Ele.elementMountTo(apPopupContent);
             messagePEle.elementMountTo(apPopupContent);
             apPopupContent.elementMountTo(this.popupElement);
-            let timer = setTimeout(() => {
-                apPopupContent.toHTMLElement().remove();
-            }, 3000);
+            let timer;
             closeSpanEle.toHTMLElement().onclick = () => {
                 console.log("关闭...");
-                clearTimeout(timer);
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = 0;
+                }
                 apPopupContent.toHTMLElement().remove();
             };
+            timer = setTimeout(() => {
+                apPopupContent.toHTMLElement().remove();
+            }, 3000);
         }
     }
     // 爱果组件
@@ -502,8 +506,9 @@
           display: flex;
           justify-content:center;
           font-weight:bold;
-          color:white;
+          color:#999999;
           padding:3px;
+          letter-spacing:5px;
         }
 
         div.ag-popup>div>p{

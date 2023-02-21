@@ -405,15 +405,20 @@
       messagePEle.elementMountTo(apPopupContent);
       apPopupContent.elementMountTo(this.popupElement);
 
-      let timer = setTimeout(() => {
-        apPopupContent.toHTMLElement().remove();
-      }, 3000);
+      let timer: number;
 
       closeSpanEle.toHTMLElement().onclick = () => {
         console.log("关闭...");
-        clearTimeout(timer);
+        if (timer) {
+          clearTimeout(timer);
+          timer = 0;
+        }
         apPopupContent.toHTMLElement().remove();
       };
+
+      timer = setTimeout(() => {
+        apPopupContent.toHTMLElement().remove();
+      }, 3000);
     }
   }
 
@@ -618,8 +623,9 @@
           display: flex;
           justify-content:center;
           font-weight:bold;
-          color:white;
+          color:#999999;
           padding:3px;
+          letter-spacing:5px;
         }
 
         div.ag-popup>div>p{
@@ -1184,7 +1190,7 @@
           marginTop: "10px",
           cursor: "default",
         });
-        
+
         rowFour.toHTMLElement().onclick = () => {
           const num = document.querySelectorAll(`.ag-popup>div`).length + 1;
           this.popup(`${num} 这是一条测试信息...`);
