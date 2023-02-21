@@ -307,6 +307,21 @@
                 });
             });
         }
+        popup(message, title = "爱果") {
+            const agPopup = new AGElement("div", "ag-popup");
+            const popupNumber = document.querySelectorAll(".ag-popup").length;
+            agPopup.setStyle({ top: `${String(popupNumber * 100)}px` });
+            const apPopupContent = new AGElement("div");
+            apPopupContent.setText(`
+        <h3>${title}<span>x</span></h3>
+        <p>${message}</p>
+      `);
+            apPopupContent.elementMountTo(agPopup);
+            agPopup.elementMountTo(document.body, true);
+            setTimeout(() => {
+                // agPopup.toHTMLElement().remove();
+            }, 3000);
+        }
     }
     // 爱果组件
     class AAGComponent {
@@ -442,6 +457,26 @@
     }
     class AGStyles extends AAGStyles {
         AGStyles = `
+        div.ag-popup{
+          position: fixed;
+          height: 100px;
+          width: 100px;
+          background-color: red;
+          z-index: 99999;
+          top: 0;
+          width: 100%;
+        }
+
+        div.ag-popup>div>h3{
+          display: flex;
+          justify-content:center;
+          font-weight:bold;
+        }
+
+        div.ag-popup>div>p{
+          padding:0 15px;
+        }
+
         li.ag-options[ag-active="true"] { color:orange;  }
         li.ag-options:hover { color:orange; }
         li.ag-options { color:#999999; }
@@ -941,6 +976,9 @@
                     marginTop: "10px",
                     cursor: "default",
                 });
+                rowFour.toHTMLElement().onclick = () => {
+                    this.popup("这是一条测试信息...");
+                };
                 AGElement.elementsMountTo([rowOne, rowTwo, rowThree, rowFour], columnLeft);
                 const menu = new AGElement("ul");
                 menu.setStyle({
