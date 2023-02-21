@@ -63,6 +63,15 @@
                 value = JSON.stringify(value);
             type === "local" ? localStorage.setItem(key, String(value)) : sessionStorage.setItem(key, String(value));
         }
+        append(key, value, type = "local") {
+            const storage = this.get(key, type, true);
+            if (storage === undefined)
+                this.set(key, value, type);
+            if (value instanceof Object && value !== null) {
+                const newObject = Object.assign({}, storage, value);
+                this.set(key, newObject, type);
+            }
+        }
         get(key, type = "local", parse = false) {
             key = AGStorage.PREFIX.concat(key.toUpperCase());
             const result = type === "local" ? localStorage.getItem(key) : sessionStorage.getItem(key);
@@ -302,11 +311,12 @@
     // 爱果组件
     class AAGComponent {
     }
-    class AGComponent extends AAGComponent {
-        static Form = class Form {
+    class AGComponent {
+        static Form = class Form extends AAGComponent {
             form;
             inputs = {};
             constructor() {
+                super();
                 this.form = new AGElement("form", "ag-form");
             }
             addInput(type, labelText, value, name, id, checkboxLabelText, checkboxValue) {
@@ -370,15 +380,19 @@
                 });
                 return result;
             }
+            saveToStorage(type = "local") {
+                AGStorage.getInstance().append("form_settings", this.getInputsData(), type);
+            }
             getInstance() {
                 return this.form;
             }
         };
-        static Table = class Table {
+        static Table = class Table extends AAGComponent {
             table;
             headers = [];
             rows = [];
             constructor() {
+                super();
                 this.table = new AGElement("table", "ag-table");
             }
             addHeader(...header) {
@@ -414,6 +428,9 @@
                     inputsData[label] = checkbox;
                 }
                 return inputsData;
+            }
+            saveToStorage(type = "local") {
+                AGStorage.getInstance().append("table_settings", this.getInputsData(), type);
             }
             getInstance() {
                 return this.table;
@@ -671,9 +688,9 @@
                         const divRowOne = new AGElement("div", "ag-draw");
                         const localFormSettings = this.AGStorage.get("form_settings", "local", true);
                         const formSettings = new AGComponent.Form();
-                        formSettings.addInput("text", "地址", localFormSettings["地址"].value);
-                        formSettings.addInput("password", "卡密", localFormSettings["卡密"].value);
-                        formSettings.addInput("password", "题库", localFormSettings["题库"].value, "题库", undefined, "启用", localFormSettings["题库"].checkbox);
+                        formSettings.addInput("text", "地址", localFormSettings?.["地址"]?.value);
+                        formSettings.addInput("password", "卡密", localFormSettings?.["卡密"]?.value);
+                        formSettings.addInput("password", "题库", localFormSettings?.["题库"]?.value, "题库", undefined, "启用", localFormSettings?.["题库"]?.checkbox);
                         formSettings.getInstance().elementMountTo(divRowOne);
                         this.splitLine(divRowOne);
                         const tableSettings = new AGComponent.Table();
@@ -712,7 +729,7 @@
                             const checkbox = new AGElement("input");
                             checkbox.setAttr("type", "checkbox");
                             if (localTableSettings && typeof localTableSettings === "object") {
-                                checkbox.toHTMLElement().checked = localTableSettings[name];
+                                checkbox.toHTMLElement().checked = localTableSettings?.[name];
                             }
                             tableSettings.addRow(name, checkbox);
                         });
@@ -752,10 +769,8 @@
                         });
                         buttonSave.toHTMLElement().onclick = () => {
                             console.log("保存配置");
-                            console.log(formSettings.getInputsData());
-                            console.log(tableSettings.getInputsData());
-                            this.AGStorage.set("form_settings", formSettings.getInputsData());
-                            this.AGStorage.set("table_settings", tableSettings.getInputsData());
+                            formSettings.saveToStorage();
+                            tableSettings.saveToStorage();
                         };
                         buttonVerification.elementMountTo(divRowTwo);
                         buttonSave.elementMountTo(divRowTwo);
