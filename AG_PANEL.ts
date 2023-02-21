@@ -31,11 +31,7 @@
       return AGRequest.instance;
     }
 
-    async request(
-      url: string,
-      type: string,
-      data: object,
-    ): Promise<IResponse<T>> {
+    async request(url: string, type: string, data: object): Promise<IResponse<T>> {
       const body: RequestInit = {
         method: type,
         mode: "cors",
@@ -67,11 +63,7 @@
   // 爱果存储
   interface IAGStorage {
     set(key: string, value: string | object, type: "local" | "session"): void;
-    get(
-      key: string,
-      type: "local" | "session",
-      parse: true | false,
-    ): string | object | null;
+    get(key: string, type: "local" | "session", parse: true | false): string | object | null;
 
     increase(key: string, type: "local" | "session"): number;
 
@@ -90,29 +82,15 @@
       return AGStorage.storage;
     }
 
-    set(
-      key: string,
-      value: number | string | object,
-      type: "local" | "session" = "local",
-    ): void {
+    set(key: string, value: number | string | object, type: "local" | "session" = "local"): void {
       key = AGStorage.PREFIX.concat(key.toUpperCase());
-      if (value instanceof Object && value !== null)
-        value = JSON.stringify(value);
-      type === "local"
-        ? localStorage.setItem(key, String(value))
-        : sessionStorage.setItem(key, String(value));
+      if (value instanceof Object && value !== null) value = JSON.stringify(value);
+      type === "local" ? localStorage.setItem(key, String(value)) : sessionStorage.setItem(key, String(value));
     }
 
-    get(
-      key: string,
-      type: "local" | "session" = "local",
-      parse: boolean = false,
-    ): string | object | null {
+    get(key: string, type: "local" | "session" = "local", parse: boolean = false): string | object | null {
       key = AGStorage.PREFIX.concat(key.toUpperCase());
-      const result =
-        type === "local"
-          ? localStorage.getItem(key)
-          : sessionStorage.getItem(key);
+      const result = type === "local" ? localStorage.getItem(key) : sessionStorage.getItem(key);
       return parse && result ? JSON.parse(result) : result;
     }
     increase(key: string, type: "local" | "session"): number {
@@ -123,9 +101,7 @@
     }
     remove(key: string, type: "local" | "session"): void {
       key = AGStorage.PREFIX.concat(key.toUpperCase());
-      type === "local"
-        ? localStorage.removeItem(key)
-        : sessionStorage.removeItem(key);
+      type === "local" ? localStorage.removeItem(key) : sessionStorage.removeItem(key);
     }
     clear(): void {
       const handler = (instance: Storage) => {
@@ -142,17 +118,11 @@
 
   // 爱果元素
   abstract class AAGElement {
-    protected abstract setStyle(
-      attributes: { [key: string]: string },
-      important: "important" | undefined,
-    ): boolean;
+    protected abstract setStyle(attributes: { [key: string]: string }, important: "important" | undefined): boolean;
 
     protected abstract setText(text: string): void;
 
-    protected abstract setAttr(
-      key: string,
-      value: boolean | string | number,
-    ): void;
+    protected abstract setAttr(key: string, value: boolean | string | number): void;
 
     protected abstract getStyle(...attributes: Array<string>): {
       [key: string]: string;
@@ -163,7 +133,7 @@
       mountElement: AGElement | HTMLElement,
       append: boolean,
       position: "top" | "bottom" | "insert",
-      insertBefore?: HTMLElement | AGElement,
+      insertBefore?: HTMLElement | AGElement
     ): boolean;
 
     protected abstract toHTMLElement(): HTMLElement;
@@ -176,7 +146,7 @@
       tagOrSelector: HTMLElement | string,
       tagClass?: string,
       tagId?: string,
-      tagAttributes?: { [key: string]: string },
+      tagAttributes?: { [key: string]: string }
     ) {
       super();
       let element: HTMLElement | null = null;
@@ -207,19 +177,12 @@
       this.element.setAttribute(key, String(value));
     }
 
-    setStyle(
-      attributes: { [key: string]: string },
-      important: "important" | undefined = "important",
-    ): boolean {
+    setStyle(attributes: { [key: string]: string }, important: "important" | undefined = "important"): boolean {
       const keys = Object.keys(attributes);
       if (!keys.length) return false;
       for (const key of keys) {
         if (key in this.element.style) {
-          this.element.style.setProperty(
-            key.replace(/([A-Z])/g, "-$1").toLowerCase(),
-            attributes[key],
-            important,
-          );
+          this.element.style.setProperty(key.replace(/([A-Z])/g, "-$1").toLowerCase(), attributes[key], important);
         }
       }
       return true;
@@ -264,13 +227,11 @@
       mountElement: HTMLElement | AGElement,
       append: boolean = false,
       position: "top" | "bottom" | "insert" = "bottom",
-      insertBefore?: HTMLElement | AGElement,
+      insertBefore?: HTMLElement | AGElement
     ): boolean {
       if (!mountElement) return false;
-      if (mountElement instanceof AGElement)
-        mountElement = mountElement.element;
-      if (insertBefore && insertBefore instanceof AGElement)
-        insertBefore = insertBefore.element;
+      if (mountElement instanceof AGElement) mountElement = mountElement.element;
+      if (insertBefore && insertBefore instanceof AGElement) insertBefore = insertBefore.element;
       if (!append) {
         let selector = "";
         if (this.element.id) selector = `#${this.element.id}`;
@@ -280,8 +241,7 @@
             .map((className) => `.${className}`)
             .join("");
         }
-        if (selector)
-          document.querySelectorAll(selector).forEach((item) => item.remove());
+        if (selector) document.querySelectorAll(selector).forEach((item) => item.remove());
       }
       switch (position) {
         case "top":
@@ -307,15 +267,13 @@
       elements: Array<AGElement | HTMLElement>,
       mountElement: AGElement | HTMLElement,
       position: "top" | "bottom" | "insert" = "bottom",
-      insertBefore?: HTMLElement | AGElement,
+      insertBefore?: HTMLElement | AGElement
     ): boolean {
       if (!mountElement || !elements) return false;
       elements.forEach((element) => {
         if (element instanceof AGElement) element = element.element;
-        if (mountElement instanceof AGElement)
-          mountElement = mountElement.element;
-        if (insertBefore && insertBefore instanceof AGElement)
-          insertBefore = insertBefore.element;
+        if (mountElement instanceof AGElement) mountElement = mountElement.element;
+        if (insertBefore && insertBefore instanceof AGElement) insertBefore = insertBefore.element;
         switch (position) {
           case "top":
             mountElement.prepend(element);
@@ -339,7 +297,7 @@
     static setStyles(
       elements: Array<AGElement | HTMLElement>,
       attributes: { [key: string]: string },
-      important: "important" | undefined = "important",
+      important: "important" | undefined = "important"
     ) {
       const keys = Object.keys(attributes);
       if (!keys.length) return false;
@@ -347,11 +305,7 @@
         if (element instanceof AGElement) element = element.element;
         for (const key of keys) {
           if (key in element.style) {
-            element.style.setProperty(
-              key.replace(/([A-Z])/g, "-$1").toLowerCase(),
-              attributes[key],
-              important,
-            );
+            element.style.setProperty(key.replace(/([A-Z])/g, "-$1").toLowerCase(), attributes[key], important);
           }
         }
       });
@@ -363,12 +317,8 @@
   // 爱果方法
   abstract class AAGMethods {
     protected abstract handlerAGError(): void;
-    protected abstract registerAGMessageListenerHandler(
-      callback: (e: MessageEvent<any>) => {},
-    ): void;
-    protected abstract sendMessageToAGMessageListenerHandler(
-      message: string,
-    ): void;
+    protected abstract registerAGMessageListenerHandler(callback: (e: MessageEvent<any>) => {}): void;
+    protected abstract sendMessageToAGMessageListenerHandler(message: string): void;
 
     protected abstract scrollElementIntoView(element: HTMLElement): void;
     protected abstract waitForElement(selector: string): void;
@@ -385,14 +335,8 @@
       });
     }
 
-    protected registerAGMessageListenerHandler(
-      callback: (e: MessageEvent<any>) => {},
-    ): void {
-      window.addEventListener(
-        "message",
-        (e: MessageEvent<any>) => callback(e),
-        false,
-      );
+    protected registerAGMessageListenerHandler(callback: (e: MessageEvent<any>) => {}): void {
+      window.addEventListener("message", (e: MessageEvent<any>) => callback(e), false);
     }
 
     protected sendMessageToAGMessageListenerHandler(message: string): void {
@@ -446,15 +390,15 @@
         name?: string,
         id?: string,
         checkboxLabelText?: string,
+        checkboxValue?: boolean
       ): boolean {
         const input = new AGElement("input");
         input.setAttr("type", type);
         input.setAttr("value", value ? value.toString() : "");
+
         if (id) input.setAttr("id", id);
         if (name) input.setAttr("name", name);
-        this.inputs[
-          labelText || id || `input-${Object.keys(this.inputs).length}`
-        ] = input;
+        this.inputs[labelText || id || `input-${Object.keys(this.inputs).length}`] = input;
 
         const line = new AGElement("div", "form-line");
 
@@ -465,9 +409,30 @@
 
         if (checkboxLabelText) {
           const checkbox = new AGElement("input");
+
+          input.toHTMLElement().oninput = (e) => {
+            const value = (e.target as HTMLInputElement).value;
+            if (value) checkbox.toHTMLElement().removeAttribute("disabled");
+            else {
+              (checkbox.toHTMLElement() as HTMLInputElement).checked = false;
+              checkbox.setAttr("disabled", "true");
+            }
+          };
+          // 单击事件
+          checkbox.toHTMLElement().onchange = (e) => {
+            const checked = (e.target as HTMLInputElement).checked;
+            if (checked) {
+              // 只有输入了题库卡密才能启用该选项
+              const ele = input.toHTMLElement() as HTMLInputElement;
+              console.log(ele.value);
+            }
+          };
+
           checkbox.setAttr("type", "checkbox");
           const checkboxLabel = new AGElement("label");
           checkboxLabel.setText(checkboxLabelText);
+          if (checkboxValue) (checkbox.toHTMLElement() as HTMLInputElement).checked = checkboxValue;
+          if (!(input.toHTMLElement() as HTMLInputElement).value) checkbox.setAttr("disabled", "true");
           const checkboxContainer = new AGElement("div");
           checkbox.elementMountTo(checkboxContainer);
           checkboxLabel.elementMountTo(checkboxContainer);
@@ -486,8 +451,7 @@
         } = {};
         Object.keys(this.inputs).forEach((key) => {
           const ele = this.inputs[key].toHTMLElement() as HTMLInputElement;
-          const checkboxEle = ele.nextElementSibling
-            ?.firstChild as HTMLInputElement;
+          const checkboxEle = ele.nextElementSibling?.firstChild as HTMLInputElement;
           result[key] = {
             value: ele.value,
             checkbox: checkboxEle ? checkboxEle?.checked : false,
@@ -525,8 +489,7 @@
         const rowElement = new AGElement("tr");
         row.forEach((cellItem) => {
           const cell = new AGElement("td");
-          if (cellItem instanceof HTMLInputElement)
-            new AGElement(cellItem).elementMountTo(cell);
+          if (cellItem instanceof HTMLInputElement) new AGElement(cellItem).elementMountTo(cell);
           else if (cellItem instanceof AGElement) cellItem.elementMountTo(cell);
           else cell.setText(cellItem);
           cell.elementMountTo(rowElement);
@@ -535,19 +498,12 @@
       }
       getInputsData() {
         const inputsData: { [key: string]: boolean } = {};
-
-        // 遍历每个行
-        for (let i = 0; i < this.rows.length; i++) {
-          // 从 1 开始以跳过标题行
-          const row = this.rows[i];
-          const label = row[0] as string;
+        for (const element of this.rows) {
+          const label = element[0] as string;
           const checkbox =
-            row[1] instanceof AGElement
-              ? (row[1].toHTMLElement() as HTMLInputElement).checked
-              : false;
+            element[1] instanceof AGElement ? (element[1].toHTMLElement() as HTMLInputElement).checked : false;
           inputsData[label] = checkbox;
         }
-
         return inputsData;
       }
 
@@ -670,16 +626,9 @@
       return true;
     }
 
-    static coverText(
-      text: string | number,
-      leftShow: number,
-      rightShow: number,
-    ) {
+    static coverText(text: string | number, leftShow: number, rightShow: number) {
       const str = String(text);
-      const result = `${str.substring(0, leftShow)}...${str.substring(
-        str.length - rightShow,
-        str.length,
-      )}`;
+      const result = `${str.substring(0, leftShow)}...${str.substring(str.length - rightShow, str.length)}`;
       return result;
     }
   }
@@ -853,15 +802,19 @@
 
             const divRowOne = new AGElement("div", "ag-draw");
 
+            const localFormSettings: any = this.AGStorage.get("form_settings", "local", true);
             const formSettings = new AGComponent.Form();
-            formSettings.addInput("text", "地址");
-            formSettings.addInput("password", "卡密");
+            formSettings.addInput("text", "地址", localFormSettings["地址"].value);
+            formSettings.addInput("password", "卡密", localFormSettings["卡密"].value);
+
             formSettings.addInput(
               "password",
               "题库",
-              undefined,
+              localFormSettings["题库"].value,
+              "题库",
               undefined,
               "启用",
+              localFormSettings["题库"].checkbox
             );
             formSettings.getInstance().elementMountTo(divRowOne);
 
@@ -903,21 +856,13 @@
                 element: undefined,
               },
             ];
-            const localTableSettings: any = this.AGStorage.get(
-              "table_settings",
-              "local",
-              true,
-            );
+            const localTableSettings: any = this.AGStorage.get("table_settings", "local", true);
             tasks.forEach((item) => {
               const { name } = item;
               const checkbox = new AGElement("input");
               checkbox.setAttr("type", "checkbox");
-              if (
-                localTableSettings &&
-                typeof localTableSettings === "object"
-              ) {
-                (checkbox.toHTMLElement() as HTMLInputElement).checked =
-                  localTableSettings[name];
+              if (localTableSettings && typeof localTableSettings === "object") {
+                (checkbox.toHTMLElement() as HTMLInputElement).checked = localTableSettings[name];
               }
               tableSettings.addRow(name, checkbox);
             });
@@ -963,10 +908,7 @@
               console.log(formSettings.getInputsData());
               console.log(tableSettings.getInputsData());
               this.AGStorage.set("form_settings", formSettings.getInputsData());
-              this.AGStorage.set(
-                "table_settings",
-                tableSettings.getInputsData(),
-              );
+              this.AGStorage.set("table_settings", tableSettings.getInputsData());
             };
 
             buttonVerification.elementMountTo(divRowTwo);
@@ -1058,16 +1000,13 @@
                 cursor: "pointer",
               });
               button.toHTMLElement().onclick = () => {
-                const divDonationItem = new AGElement(
-                  "div",
-                  "ag-draw donation",
-                );
+                const divDonationItem = new AGElement("div", "ag-draw donation");
                 divDonationItem.setStyle({
                   display: "inline-flex",
                 });
                 const spanMessage = new AGElement("span");
                 spanMessage.setText(
-                  "插件本身免费，但是你不会介意捐助我一杯咖啡or奶茶的吧？捐助的时候记得备注联系方式或邮箱，卡密会在我收到捐助后第一时间给你。对了，不同的捐助会有区别对待（额外的奖励等），包括但不限于本插件。",
+                  "插件本身免费，但是你不会介意捐助我一杯咖啡or奶茶的吧？捐助的时候记得备注联系方式或邮箱，卡密会在我收到捐助后第一时间给你。对了，不同的捐助会有区别对待（额外的奖励等），包括但不限于本插件。"
                 );
                 spanMessage.setStyle({
                   backgroundColor: "orange",
@@ -1145,9 +1084,7 @@
         });
 
         const rowFour = new AGElement("div");
-        rowFour.setText(
-          `卡密次数: ${this.user.kami} <span style='color:#2579cd;cursor:pointer'>说明</span>`,
-        );
+        rowFour.setText(`卡密次数: ${this.user.kami} <span style='color:#2579cd;cursor:pointer'>说明</span>`);
         rowFour.setStyle({
           height: "20px",
           lineHeight: "20px",
@@ -1157,10 +1094,7 @@
           marginTop: "10px",
           cursor: "default",
         });
-        AGElement.elementsMountTo(
-          [rowOne, rowTwo, rowThree, rowFour],
-          columnLeft,
-        );
+        AGElement.elementsMountTo([rowOne, rowTwo, rowThree, rowFour], columnLeft);
         const menu = new AGElement("ul");
         menu.setStyle({
           listStyleType: "none",
@@ -1265,7 +1199,7 @@
               display,
             });
           },
-          status ? 200 : 0,
+          status ? 200 : 0
         );
       };
 

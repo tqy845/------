@@ -61,15 +61,11 @@
             key = AGStorage.PREFIX.concat(key.toUpperCase());
             if (value instanceof Object && value !== null)
                 value = JSON.stringify(value);
-            type === "local"
-                ? localStorage.setItem(key, String(value))
-                : sessionStorage.setItem(key, String(value));
+            type === "local" ? localStorage.setItem(key, String(value)) : sessionStorage.setItem(key, String(value));
         }
         get(key, type = "local", parse = false) {
             key = AGStorage.PREFIX.concat(key.toUpperCase());
-            const result = type === "local"
-                ? localStorage.getItem(key)
-                : sessionStorage.getItem(key);
+            const result = type === "local" ? localStorage.getItem(key) : sessionStorage.getItem(key);
             return parse && result ? JSON.parse(result) : result;
         }
         increase(key, type) {
@@ -81,9 +77,7 @@
         }
         remove(key, type) {
             key = AGStorage.PREFIX.concat(key.toUpperCase());
-            type === "local"
-                ? localStorage.removeItem(key)
-                : sessionStorage.removeItem(key);
+            type === "local" ? localStorage.removeItem(key) : sessionStorage.removeItem(key);
         }
         clear() {
             const handler = (instance) => {
@@ -315,7 +309,7 @@
             constructor() {
                 this.form = new AGElement("form", "ag-form");
             }
-            addInput(type, labelText, value, name, id, checkboxLabelText) {
+            addInput(type, labelText, value, name, id, checkboxLabelText, checkboxValue) {
                 const input = new AGElement("input");
                 input.setAttr("type", type);
                 input.setAttr("value", value ? value.toString() : "");
@@ -331,9 +325,31 @@
                 input.elementMountTo(line);
                 if (checkboxLabelText) {
                     const checkbox = new AGElement("input");
+                    input.toHTMLElement().oninput = (e) => {
+                        const value = e.target.value;
+                        if (value)
+                            checkbox.toHTMLElement().removeAttribute("disabled");
+                        else {
+                            checkbox.toHTMLElement().checked = false;
+                            checkbox.setAttr("disabled", "true");
+                        }
+                    };
+                    // 单击事件
+                    checkbox.toHTMLElement().onchange = (e) => {
+                        const checked = e.target.checked;
+                        if (checked) {
+                            // 只有输入了题库卡密才能启用该选项
+                            const ele = input.toHTMLElement();
+                            console.log(ele.value);
+                        }
+                    };
                     checkbox.setAttr("type", "checkbox");
                     const checkboxLabel = new AGElement("label");
                     checkboxLabel.setText(checkboxLabelText);
+                    if (checkboxValue)
+                        checkbox.toHTMLElement().checked = checkboxValue;
+                    if (!input.toHTMLElement().value)
+                        checkbox.setAttr("disabled", "true");
                     const checkboxContainer = new AGElement("div");
                     checkbox.elementMountTo(checkboxContainer);
                     checkboxLabel.elementMountTo(checkboxContainer);
@@ -346,8 +362,7 @@
                 const result = {};
                 Object.keys(this.inputs).forEach((key) => {
                     const ele = this.inputs[key].toHTMLElement();
-                    const checkboxEle = ele.nextElementSibling
-                        ?.firstChild;
+                    const checkboxEle = ele.nextElementSibling?.firstChild;
                     result[key] = {
                         value: ele.value,
                         checkbox: checkboxEle ? checkboxEle?.checked : false,
@@ -393,14 +408,9 @@
             }
             getInputsData() {
                 const inputsData = {};
-                // 遍历每个行
-                for (let i = 0; i < this.rows.length; i++) {
-                    // 从 1 开始以跳过标题行
-                    const row = this.rows[i];
-                    const label = row[0];
-                    const checkbox = row[1] instanceof AGElement
-                        ? row[1].toHTMLElement().checked
-                        : false;
+                for (const element of this.rows) {
+                    const label = element[0];
+                    const checkbox = element[1] instanceof AGElement ? element[1].toHTMLElement().checked : false;
                     inputsData[label] = checkbox;
                 }
                 return inputsData;
@@ -659,10 +669,11 @@
                     event: () => {
                         console.log("配置　begin");
                         const divRowOne = new AGElement("div", "ag-draw");
+                        const localFormSettings = this.AGStorage.get("form_settings", "local", true);
                         const formSettings = new AGComponent.Form();
-                        formSettings.addInput("text", "地址");
-                        formSettings.addInput("password", "卡密");
-                        formSettings.addInput("password", "题库", undefined, undefined, "启用");
+                        formSettings.addInput("text", "地址", localFormSettings["地址"].value);
+                        formSettings.addInput("password", "卡密", localFormSettings["卡密"].value);
+                        formSettings.addInput("password", "题库", localFormSettings["题库"].value, "题库", undefined, "启用", localFormSettings["题库"].checkbox);
                         formSettings.getInstance().elementMountTo(divRowOne);
                         this.splitLine(divRowOne);
                         const tableSettings = new AGComponent.Table();
@@ -700,10 +711,8 @@
                             const { name } = item;
                             const checkbox = new AGElement("input");
                             checkbox.setAttr("type", "checkbox");
-                            if (localTableSettings &&
-                                typeof localTableSettings === "object") {
-                                checkbox.toHTMLElement().checked =
-                                    localTableSettings[name];
+                            if (localTableSettings && typeof localTableSettings === "object") {
+                                checkbox.toHTMLElement().checked = localTableSettings[name];
                             }
                             tableSettings.addRow(name, checkbox);
                         });
