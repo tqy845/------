@@ -417,7 +417,7 @@
       };
 
       timer = setTimeout(() => {
-        apPopupContent.toHTMLElement().remove();
+        // apPopupContent.toHTMLElement().remove();
       }, 3000);
     }
   }
@@ -596,12 +596,26 @@
           border-radius: 0 5px 5px 0;
         }
 
+        div.ag-menu-button{
+          background-color: #121212;
+          width: 25px;
+          height: 100%;
+          display: inline-flex;
+          align-items: center;
+          text-align: center;
+          cursor: pointer;
+          position: absolute;
+          right: 0;
+          top: 0;
+          font-weight: bold;
+          border-left: 1px solid #434343;
+          border-radius: 0 5px 5px 0;
+      }
 
         div.ag-popup{
           position: fixed;
           z-index: 99999;
           top: 0;
-          width: 100%;
         }
 
         div.ag-popup>div{
@@ -610,6 +624,8 @@
           margin:10px;
           border: 1px solid  rgb(144 144 144) !important;
           border-radius:8px;
+          box-shadow:1px 1px 0.5px 0px orange;
+          min-width:300px;
         }
 
         div.ag-popup>div>span{
