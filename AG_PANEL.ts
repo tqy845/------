@@ -387,7 +387,8 @@
 
     protected popup(message: string, title: string = "爱果"): void {
       if (!this.popupElement) {
-        this.popupElement = new AGElement("div", "ag-popup");
+        const ele = document.querySelector(".ag-popup") as HTMLElement;
+        this.popupElement = ele ? new AGElement(ele) : new AGElement("div", "ag-popup");
         this.popupElement.elementMountTo(document.body, true);
       }
 
@@ -417,7 +418,7 @@
       };
 
       timer = setTimeout(() => {
-        // apPopupContent.toHTMLElement().remove();
+        apPopupContent.toHTMLElement().remove();
       }, 3000);
     }
   }
@@ -616,6 +617,7 @@
           position: fixed;
           z-index: 99999;
           top: 0;
+          max-width: 350px;
         }
 
         div.ag-popup>div{
@@ -624,8 +626,8 @@
           margin:10px;
           border: 1px solid  rgb(144 144 144) !important;
           border-radius:8px;
-          box-shadow:1px 1px 0.5px 0px orange;
           min-width:300px;
+          overflow: hidden;
         }
 
         div.ag-popup>div>span{
@@ -642,6 +644,7 @@
           color:#ffffffe3;
           padding:3px;
           letter-spacing:5px;
+          background-color:#292929;
         }
 
         div.ag-popup>div>p{
