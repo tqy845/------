@@ -334,7 +334,7 @@
                 apPopupContent.toHTMLElement().remove();
             };
             timer = setTimeout(() => {
-                apPopupContent.toHTMLElement().remove();
+                // apPopupContent.toHTMLElement().remove();
             }, 3000);
         }
     }
@@ -502,8 +502,8 @@
         }
 
         div.ag-popup>div{
-          background-color: #121212;
-          color: white;
+          background-color: #121212e6;
+          color: #ffffffe3;
           margin:10px;
           border: 1px solid  rgb(144 144 144) !important;
           border-radius:8px;
@@ -522,7 +522,7 @@
           display: flex;
           justify-content:center;
           font-weight:bold;
-          color:#999999;
+          color:#ffffffe3;
           padding:3px;
           letter-spacing:5px;
         }
