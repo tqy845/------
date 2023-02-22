@@ -417,7 +417,7 @@
       };
 
       timer = setTimeout(() => {
-        // apPopupContent.toHTMLElement().remove();
+        apPopupContent.toHTMLElement().remove();
       }, 3000);
     }
   }
