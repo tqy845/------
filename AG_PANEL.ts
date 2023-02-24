@@ -12,86 +12,76 @@
 (() => {
   "use strict";
   // 爱果接口
-  interface IResponse<T> {
+  interface IAGResponse<T> {
     code: number;
     msg: string;
-    data: T;
+    data: T | undefined;
+  }
+  interface IAGRequest {
+    request<T = any>(url: string, options: requestOptions): Promise<T>;
   }
 
-  interface IRequest<T> {
-    request(url: string, type: string, data: object): Promise<IResponse<T>>;
-  }
+  type requestOptions = {
+    type: "get" | "post";
+    data?: object;
+    baseUrl?: string;
+    credentials?: RequestCredentials | undefined;
+  };
 
-  class AGRequest<T> implements IRequest<T> {
-    private static instance: AGRequest<any>;
+  class AGRequest<T> implements IAGRequest {
+    private static instance: AGRequest<IAGResponse<Object>>;
     private constructor() {}
 
-    static getInstance<R>() {
-      if (!AGRequest.instance) AGRequest.instance = new AGRequest<R>();
+    static getInstance(): AGRequest<IAGResponse<Object>> {
+      if (!AGRequest.instance) {
+        AGRequest.instance = new AGRequest();
+      }
       return AGRequest.instance;
     }
 
-    async request(url: string, type: string, data: object): Promise<IResponse<T>> {
+    async request<T = any>(url: string, options: requestOptions = { type: "get" }): Promise<T> {
+      const { baseUrl, type, data, credentials } = options;
       const body: RequestInit = {
         method: type,
         mode: "cors",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: credentials,
       };
-      if (type.toUpperCase() !== "GET") {
+
+      if (options.type.toUpperCase() !== "GET") {
         body.body = JSON.stringify(data);
       }
+      let resData;
       try {
-        const response = await fetch(`xxx/AG${url}`, body);
+        const response = await fetch(baseUrl ? baseUrl : `xxx/AG${url}`, body);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const resData = await response.json();
+        resData = await response.json();
         if (!resData || typeof resData !== "object") {
           throw new Error("Unexpected response data format");
         }
-        const data: IResponse<T> = resData as IResponse<T>;
-        return data;
       } catch (error) {
         console.error(error);
-        return { code: -1, msg: "", data: {} } as IResponse<T>;
+      } finally {
+        return resData;
       }
     }
   }
 
   // 爱果存储
-  interface IAGStorage {
-    set(key: string, value: string | object, type: "local" | "session"): void;
-
-    get(key: string, type: "local" | "session", parse: true | false): string | object | null;
-
-    append(key: string, value: string | object, type: "local" | "session"): void;
-
-    increase(key: string, type: "local" | "session"): number;
-
-    remove(key: string, type: "local" | "session"): void;
-
-    clear(): void;
-  }
-
-  class AGStorage implements IAGStorage {
-    private static storage: AGStorage;
+  class AGStorage {
     private static PREFIX = "AG_STORAGE_";
-    private constructor() {}
 
-    static getInstance() {
-      if (!AGStorage.storage) AGStorage.storage = new AGStorage();
-      return AGStorage.storage;
-    }
-
-    set(key: string, value: number | string | object, type: "local" | "session" = "local"): void {
+    static set(key: string, value: number | string | object, type: "local" | "session" = "local"): void {
       key = AGStorage.PREFIX.concat(key.toUpperCase());
       if (value instanceof Object && value !== null) value = JSON.stringify(value);
       type === "local" ? localStorage.setItem(key, String(value)) : sessionStorage.setItem(key, String(value));
     }
 
-    append(key: string, value: number | string | object, type: "local" | "session" = "local"): void {
+    static append(key: string, value: number | string | object, type: "local" | "session" = "local"): void {
       const storage = this.get(key, type, true);
       if (storage === undefined) this.set(key, value, type);
       if (value instanceof Object && value !== null) {
@@ -100,22 +90,24 @@
       }
     }
 
-    get(key: string, type: "local" | "session" = "local", parse: boolean = false): string | object | null {
+    static get(key: string, type: "local" | "session" = "local", parse: boolean = false): string | object | null {
       key = AGStorage.PREFIX.concat(key.toUpperCase());
       const result = type === "local" ? localStorage.getItem(key) : sessionStorage.getItem(key);
       return parse && result ? JSON.parse(result) : result;
     }
-    increase(key: string, type: "local" | "session"): number {
+
+    static increase(key: string, type: "local" | "session"): number {
       const value = Number(this.get(key));
       if (isNaN(value)) throw new Error("error:非数字不可自增");
       this.set(key, value + 1, type);
       return Number(this.get(key));
     }
-    remove(key: string, type: "local" | "session"): void {
+
+    static remove(key: string, type: "local" | "session"): void {
       key = AGStorage.PREFIX.concat(key.toUpperCase());
       type === "local" ? localStorage.removeItem(key) : sessionStorage.removeItem(key);
     }
-    clear(): void {
+    static clear(): void {
       const handler = (instance: Storage) => {
         Object.keys(instance).forEach((item) => {
           if (item.startsWith(AGStorage.PREFIX)) {
@@ -511,7 +503,7 @@
       }
 
       saveToStorage(type: "local" | "session" = "local"): void {
-        AGStorage.getInstance().append("form_settings", this.getInputsData(), type);
+        AGStorage.append("form_settings", this.getInputsData(), type);
       }
 
       get instance() {
@@ -565,7 +557,7 @@
       }
 
       saveToStorage(type: "local" | "session" = "local"): void {
-        AGStorage.getInstance().append("table_settings", this.getInputsData(), type);
+        AGStorage.append("table_settings", this.getInputsData(), type);
       }
 
       get instance() {
@@ -770,6 +762,7 @@
         password: "",
         info: "0/0",
       };
+
       const { uid, nick, address, password, info } = params || init;
       super(uid, nick, address, password, info);
     }
@@ -798,14 +791,12 @@
   // 爱果面板
   abstract class APanel extends AGMethods {
     protected AGStyles: string;
-    protected AGStorage: AGStorage;
     protected abstract mount(): void;
     protected abstract setStatusBarText(text: string): void;
     protected abstract appendMessage(message: string): void;
 
     constructor(styles?: string) {
       super();
-      this.AGStorage = AGStorage.getInstance();
       this.AGStyles = styles ? styles : "";
     }
   }
@@ -826,7 +817,7 @@
       new AGStyles().mount();
 
       // 初始化爱果用户信息
-      this.user = new User(this.AGStorage.get("user", "local", true));
+      this.user = new User(AGStorage.get("user", "local", true));
 
       // 初始化爱果面板
       const panel = new AGElement("ag-panel", panelName);
@@ -953,7 +944,7 @@
 
             const divRowOne = new AGElement("div", "ag-draw");
 
-            const localFormSettings: any = this.AGStorage.get("form_settings", "local", true);
+            const localFormSettings: any = AGStorage.get("form_settings", "local", true);
             const formSettings = new AGComponent.Form();
             formSettings.addInput("text", "地址", localFormSettings?.["地址"]?.value);
             formSettings.addInput("password", "卡密", localFormSettings?.["卡密"]?.value);
@@ -1007,7 +998,7 @@
                 element: undefined,
               },
             ];
-            const localTableSettings: any = this.AGStorage.get("table_settings", "local", true);
+            const localTableSettings: any = AGStorage.get("table_settings", "local", true);
             tasks.forEach((item) => {
               const { name } = item;
               const checkbox = new AGElement("input");
@@ -1259,7 +1250,7 @@
         });
         menu.elementMountTo(columnLeft);
 
-        let agOptionsActive = this.AGStorage.get("options_active");
+        let agOptionsActive = AGStorage.get("options_active");
         for (const item of options) {
           const li = new AGElement("li", `ag-options`);
           li.toHTMLElement().setAttribute("ag-title", item.label);
@@ -1278,7 +1269,7 @@
             }
             li.setAttr("ag-active", "true");
             const agTitle = li.getAttr("ag-title");
-            if (agTitle) this.AGStorage.set("options_active", agTitle);
+            if (agTitle) AGStorage.set("options_active", agTitle);
           };
           if (!agOptionsActive || item.label == agOptionsActive) {
             agOptionsActive = "1";
