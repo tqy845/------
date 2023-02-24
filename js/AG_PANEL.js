@@ -405,7 +405,7 @@
             saveToStorage(type = "local") {
                 AGStorage.getInstance().append("form_settings", this.getInputsData(), type);
             }
-            getInstance() {
+            get instance() {
                 return this.form;
             }
         };
@@ -454,7 +454,7 @@
             saveToStorage(type = "local") {
                 AGStorage.getInstance().append("table_settings", this.getInputsData(), type);
             }
-            getInstance() {
+            get instance() {
                 return this.table;
             }
         };
@@ -594,28 +594,60 @@
     }
     // 爱果用户
     class AUser {
+        _uid;
+        _nick;
+        _address;
+        _password;
+        _info;
+        constructor(uid, nick, address, password, info) {
+            this.uid = uid;
+            this.nick = nick;
+            this.address = address;
+            this.password = password;
+            this.info = info;
+        }
+        get uid() {
+            return this._uid;
+        }
+        get nick() {
+            return this._nick;
+        }
+        get address() {
+            return this._address;
+        }
+        get password() {
+            return this._password;
+        }
+        get info() {
+            return this._info;
+        }
+        set uid(uid) {
+            this._uid = uid;
+        }
+        set nick(nick) {
+            this._nick = nick;
+        }
+        set address(address) {
+            this._address = address;
+        }
+        set password(password) {
+            this._password = password;
+        }
+        set info(info) {
+            this._info = info;
+        }
     }
     class User extends AUser {
-        uid;
-        nick;
-        address;
-        password;
-        kami;
         constructor(params) {
-            super();
             const init = {
                 uid: "",
                 nick: "未登录",
                 address: "",
                 password: "",
-                kami: "0/0",
+                info: "0/0",
             };
-            const { uid, nick, address, password, kami } = params || init;
-            this.uid = uid || init.uid;
-            this.nick = nick || init.nick;
-            this.address = address || init.address;
-            this.password = password || init.password;
-            this.kami = kami || init.kami;
+            const { uid, nick, address, password, info } = params || init;
+            super(uid, nick, address, password, info);
         }
         static isUser(params) {
             if (!(params instanceof Object))
@@ -637,11 +669,16 @@
     }
     // 爱果面板
     class APanel extends AGMethods {
+        AGStyles;
+        AGStorage;
+        constructor(styles) {
+            super();
+            this.AGStorage = AGStorage.getInstance();
+            this.AGStyles = styles ? styles : "";
+        }
     }
     class PanelImpl extends APanel {
         static instance;
-        AGStyles = "";
-        AGStorage = AGStorage.getInstance();
         panel;
         draw;
         statusBar;
@@ -769,11 +806,11 @@
                         formSettings.addInput("text", "地址", localFormSettings?.["地址"]?.value);
                         formSettings.addInput("password", "卡密", localFormSettings?.["卡密"]?.value);
                         formSettings.addInput("password", "题库", localFormSettings?.["题库"]?.value, "题库", undefined, "启用", localFormSettings?.["题库"]?.checkbox);
-                        formSettings.getInstance().elementMountTo(divRowOne);
+                        formSettings.instance.elementMountTo(divRowOne);
                         this.splitLine(divRowOne);
                         const tableSettings = new AGComponent.Table();
                         tableSettings.addHeader("任务", "启用");
-                        tableSettings.getInstance().elementMountTo(divRowOne);
+                        tableSettings.instance.elementMountTo(divRowOne);
                         const tasks = [
                             {
                                 name: "每日答题",
@@ -1009,7 +1046,7 @@
                     cursor: "default",
                 });
                 const rowFour = new AGElement("div");
-                rowFour.setText(`卡密次数: ${this.user.kami} <span style='color:#2579cd;cursor:pointer'>说明</span>`);
+                rowFour.setText(`卡密次数: ${this.user.info} <span style='color:#2579cd;cursor:pointer'>说明</span>`);
                 rowFour.setStyle({
                     height: "20px",
                     lineHeight: "20px",
