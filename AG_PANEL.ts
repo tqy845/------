@@ -340,7 +340,7 @@
   class AGMethods extends AAGMethods {
     private popupElement: AGElement | undefined;
 
-    protected handlerAGError(): void {
+    handlerAGError(): void {
       window.addEventListener("error", (event: ErrorEvent) => {
         console.error(event.error);
       });
@@ -350,15 +350,15 @@
       });
     }
 
-    protected registerAGMessageListenerHandler(callback: (e: MessageEvent<any>) => {}): void {
+    registerAGMessageListenerHandler(callback: (e: MessageEvent<any>) => {}): void {
       window.addEventListener("message", (e: MessageEvent<any>) => callback(e), false);
     }
 
-    protected sendMessageToAGMessageListenerHandler(message: string): void {
+    sendMessageToAGMessageListenerHandler(message: string): void {
       window.parent.postMessage(message, "*");
     }
 
-    protected scrollElementIntoView(element: HTMLElement): void {
+    scrollElementIntoView(element: HTMLElement): void {
       const rect = element.getBoundingClientRect();
       const elementTop = rect.top + window.pageYOffset;
       const viewportHeight = window.innerHeight;
@@ -366,7 +366,7 @@
       window.scrollTo(0, scrollY);
     }
 
-    protected waitForElement(selector: string): Promise<unknown> {
+    waitForElement(selector: string): Promise<unknown> {
       return new Promise((resolve) => {
         const observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
@@ -385,7 +385,7 @@
       });
     }
 
-    protected popup(message: string, title: string = "爱果"): void {
+    popup(message: string, title: string = "爱果"): void {
       if (!this.popupElement) {
         const ele = document.querySelector(".ag-popup") as HTMLElement;
         this.popupElement = ele ? new AGElement(ele) : new AGElement("div", "ag-popup");
@@ -429,7 +429,7 @@
 
     protected abstract saveToStorage(type: "local" | "session"): void;
 
-    protected abstract getInstance(): AGElement;
+    protected abstract get instance(): AGElement;
   }
 
   class AGComponent {
@@ -514,7 +514,7 @@
         AGStorage.getInstance().append("form_settings", this.getInputsData(), type);
       }
 
-      getInstance() {
+      get instance() {
         return this.form;
       }
     };
@@ -568,7 +568,7 @@
         AGStorage.getInstance().append("table_settings", this.getInputsData(), type);
       }
 
-      getInstance() {
+      get instance() {
         return this.table;
       }
     };
@@ -714,34 +714,64 @@
 
   // 爱果用户
   abstract class AUser {
-    protected abstract uid: string;
-    protected abstract nick: string;
-    protected abstract address: string;
-    protected abstract password: string;
+    private _uid!: string;
+    private _nick!: string;
+    private _address!: string;
+    private _password!: string;
+    private _info!: string;
+
+    constructor(uid: string, nick: string, address: string, password: string, info: string) {
+      this.uid = uid;
+      this.nick = nick;
+      this.address = address;
+      this.password = password;
+      this.info = info;
+    }
+
+    get uid(): string {
+      return this._uid;
+    }
+    get nick(): string {
+      return this._nick;
+    }
+    get address(): string {
+      return this._address;
+    }
+    get password(): string {
+      return this._password;
+    }
+    get info(): string {
+      return this._info;
+    }
+
+    set uid(uid: string) {
+      this._uid = uid;
+    }
+    set nick(nick: string) {
+      this._nick = nick;
+    }
+    set address(address: string) {
+      this._address = address;
+    }
+    set password(password: string) {
+      this._password = password;
+    }
+    set info(info: string) {
+      this._info = info;
+    }
   }
 
   class User extends AUser {
-    uid: string;
-    nick: string;
-    address: string;
-    password: string;
-    kami: string;
-
     constructor(params: any) {
-      super();
       const init = {
         uid: "",
         nick: "未登录",
         address: "",
         password: "",
-        kami: "0/0",
+        info: "0/0",
       };
-      const { uid, nick, address, password, kami } = params || init;
-      this.uid = uid || init.uid;
-      this.nick = nick || init.nick;
-      this.address = address || init.address;
-      this.password = password || init.password;
-      this.kami = kami || init.kami;
+      const { uid, nick, address, password, info } = params || init;
+      super(uid, nick, address, password, info);
     }
 
     static isUser(params: object | null | string): boolean {
@@ -767,17 +797,21 @@
 
   // 爱果面板
   abstract class APanel extends AGMethods {
-    protected abstract AGStyles: string;
-    protected abstract AGStorage: AGStorage;
+    protected AGStyles: string;
+    protected AGStorage: AGStorage;
     protected abstract mount(): void;
     protected abstract setStatusBarText(text: string): void;
     protected abstract appendMessage(message: string): void;
+
+    constructor(styles?: string) {
+      super();
+      this.AGStorage = AGStorage.getInstance();
+      this.AGStyles = styles ? styles : "";
+    }
   }
 
   class PanelImpl extends APanel {
     private static instance: PanelImpl;
-    protected AGStyles: string = "";
-    protected AGStorage: AGStorage = AGStorage.getInstance();
     private panel: AGElement;
     private draw: AGElement;
     private statusBar: AGElement;
@@ -933,14 +967,14 @@
               "启用",
               localFormSettings?.["题库"]?.checkbox
             );
-            formSettings.getInstance().elementMountTo(divRowOne);
+            formSettings.instance.elementMountTo(divRowOne);
 
             this.splitLine(divRowOne);
 
             const tableSettings = new AGComponent.Table();
             tableSettings.addHeader("任务", "启用");
 
-            tableSettings.getInstance().elementMountTo(divRowOne);
+            tableSettings.instance.elementMountTo(divRowOne);
 
             const tasks: Array<{
               name: string;
@@ -1199,7 +1233,7 @@
         });
 
         const rowFour = new AGElement("div");
-        rowFour.setText(`卡密次数: ${this.user.kami} <span style='color:#2579cd;cursor:pointer'>说明</span>`);
+        rowFour.setText(`卡密次数: ${this.user.info} <span style='color:#2579cd;cursor:pointer'>说明</span>`);
         rowFour.setStyle({
           height: "20px",
           lineHeight: "20px",
