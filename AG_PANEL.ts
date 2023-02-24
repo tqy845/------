@@ -17,6 +17,15 @@
     msg: string;
     data: T | undefined;
   }
+
+  type UserInfo = {
+    uid: number;
+    nick: string;
+    avatarMediaUrl: string;
+    gmtActive: number;
+    orgIds: [];
+  };
+
   interface IAGRequest {
     request<T = any>(url: string, options: requestOptions): Promise<T>;
   }
@@ -30,7 +39,12 @@
 
   class AGRequest<T> implements IAGRequest {
     private static instance: AGRequest<IAGResponse<Object>>;
-    private constructor() {}
+    private constructor() {
+      setTimeout(async () => {
+        const user = await AGRequest.getInstance().userInfo;
+        console.log(user.data?.uid);
+      }, 0);
+    }
 
     static getInstance(): AGRequest<IAGResponse<Object>> {
       if (!AGRequest.instance) {
@@ -68,6 +82,14 @@
       } finally {
         return resData;
       }
+    }
+
+    get userInfo(): Promise<IAGResponse<UserInfo>> {
+      return this.request(`user/`, {
+        baseUrl: `https://pc-api.xuexi.cn/open/api/user/info`,
+        type: "get",
+        credentials: "include",
+      });
     }
   }
 
@@ -762,6 +784,7 @@
         password: "",
         info: "0/0",
       };
+      console.log(AGRequest.getInstance().userInfo);
 
       const { uid, nick, address, password, info } = params || init;
       super(uid, nick, address, password, info);

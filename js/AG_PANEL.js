@@ -13,7 +13,12 @@
     "use strict";
     class AGRequest {
         static instance;
-        constructor() { }
+        constructor() {
+            setTimeout(async () => {
+                const user = await AGRequest.getInstance().userInfo;
+                console.log(user.data?.uid);
+            }, 0);
+        }
         static getInstance() {
             if (!AGRequest.instance) {
                 AGRequest.instance = new AGRequest();
@@ -50,6 +55,13 @@
             finally {
                 return resData;
             }
+        }
+        get userInfo() {
+            return this.request(`user/`, {
+                baseUrl: `https://pc-api.xuexi.cn/open/api/user/info`,
+                type: "get",
+                credentials: "include",
+            });
         }
     }
     // 爱果存储
@@ -644,6 +656,7 @@
                 password: "",
                 info: "0/0",
             };
+            console.log(AGRequest.getInstance().userInfo);
             const { uid, nick, address, password, info } = params || init;
             super(uid, nick, address, password, info);
         }
