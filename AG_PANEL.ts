@@ -1133,9 +1133,7 @@
       AGElement.elementsMountTo([this.columnLeft, this.columnCenter, this.columnRight], panel);
     }
 
-    private async initUser() {
-   
-    }
+    private async initUser() {}
 
     private leftColumn() {
       // 左列
@@ -1241,7 +1239,7 @@
             agOptionsActive = "1";
             setTimeout(() => li.toHTMLElement().click(), 0);
           }
-          li.elementMountTo(menu);
+          li.elementMountTo(menu, true);
         }
       }
     }

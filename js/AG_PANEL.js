@@ -951,8 +951,7 @@
             });
             AGElement.elementsMountTo([this.columnLeft, this.columnCenter, this.columnRight], panel);
         }
-        async initUser() {
-        }
+        async initUser() { }
         leftColumn() {
             // 左列
             this.columnLeft.setStyle({
@@ -1051,7 +1050,7 @@
                         agOptionsActive = "1";
                         setTimeout(() => li.toHTMLElement().click(), 0);
                     }
-                    li.elementMountTo(menu);
+                    li.elementMountTo(menu, true);
                 }
             }
         }
