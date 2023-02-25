@@ -607,6 +607,8 @@
             return true;
         }
         static coverText(text, leftShow, rightShow) {
+            if (text == -1)
+                return "...";
             const str = String(text);
             const result = `${str.substring(0, leftShow)}...${str.substring(str.length - rightShow, str.length)}`;
             return result;

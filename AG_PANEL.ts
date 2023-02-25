@@ -734,6 +734,7 @@
     }
 
     static coverText(text: string | number, leftShow: number, rightShow: number) {
+      if (text == -1) return "...";
       const str = String(text);
       const result = `${str.substring(0, leftShow)}...${str.substring(str.length - rightShow, str.length)}`;
       return result;
