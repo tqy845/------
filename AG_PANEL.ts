@@ -24,6 +24,8 @@
     avatarMediaUrl: string;
     gmtActive: number;
     orgIds: [];
+    info?: string;
+    hint?: string;
   };
 
   interface IAGRequest {
@@ -34,17 +36,12 @@
     type: "get" | "post";
     data?: object;
     baseUrl?: string;
-    credentials?: RequestCredentials | undefined;
+    credentials?: RequestCredentials;
   };
 
   class AGRequest<T> implements IAGRequest {
     private static instance: AGRequest<IAGResponse<Object>>;
-    private constructor() {
-      setTimeout(async () => {
-        const user = await AGRequest.getInstance().userInfo;
-        console.log(user.data?.uid);
-      }, 0);
-    }
+    private constructor() {}
 
     static getInstance(): AGRequest<IAGResponse<Object>> {
       if (!AGRequest.instance) {
@@ -69,7 +66,7 @@
       }
       let resData;
       try {
-        const response = await fetch(baseUrl ? baseUrl : `xxx/AG${url}`, body);
+        const response = await fetch(baseUrl ? baseUrl : `http://127.0.0.1:4523/m1/2172851-0-default/AG${url}`, body);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -82,14 +79,6 @@
       } finally {
         return resData;
       }
-    }
-
-    get userInfo(): Promise<IAGResponse<UserInfo>> {
-      return this.request(`user/`, {
-        baseUrl: `https://pc-api.xuexi.cn/open/api/user/info`,
-        type: "get",
-        credentials: "include",
-      });
     }
   }
 
@@ -727,69 +716,9 @@
   }
 
   // 爱果用户
-  abstract class AUser {
-    private _uid!: string;
-    private _nick!: string;
-    private _address!: string;
-    private _password!: string;
-    private _info!: string;
-
-    constructor(uid: string, nick: string, address: string, password: string, info: string) {
-      this.uid = uid;
-      this.nick = nick;
-      this.address = address;
-      this.password = password;
-      this.info = info;
-    }
-
-    get uid(): string {
-      return this._uid;
-    }
-    get nick(): string {
-      return this._nick;
-    }
-    get address(): string {
-      return this._address;
-    }
-    get password(): string {
-      return this._password;
-    }
-    get info(): string {
-      return this._info;
-    }
-
-    set uid(uid: string) {
-      this._uid = uid;
-    }
-    set nick(nick: string) {
-      this._nick = nick;
-    }
-    set address(address: string) {
-      this._address = address;
-    }
-    set password(password: string) {
-      this._password = password;
-    }
-    set info(info: string) {
-      this._info = info;
-    }
-  }
+  abstract class AUser {}
 
   class User extends AUser {
-    constructor(params: any) {
-      const init = {
-        uid: "",
-        nick: "未登录",
-        address: "",
-        password: "",
-        info: "0/0",
-      };
-      console.log(AGRequest.getInstance().userInfo);
-
-      const { uid, nick, address, password, info } = params || init;
-      super(uid, nick, address, password, info);
-    }
-
     static isUser(params: object | null | string): boolean {
       if (!(params instanceof Object)) return false;
       const keys = Object.keys(params);
@@ -829,20 +758,360 @@
     private panel: AGElement;
     private draw: AGElement;
     private statusBar: AGElement;
-    private user: User;
+    private user: UserInfo;
+    private options: Array<{ label: string; event: Function }> = [
+      {
+        label: "前言",
+        event: () => {
+          console.log("前言 begin");
+          const ulItem = new AGElement("ul", "ag-draw");
+          ulItem.setStyle({
+            paddingLeft: "20px",
+            cursor: "default",
+            overflowX: "hidden",
+            margin: "0",
+          });
+          const messages = [
+            {
+              textContent:
+                "本工具为个人制作，仅供交流学习使用，请不要用于商业传播，否则后果自负！使用本工具即代表您同意本条款。",
+              color: "",
+              backgroundColor: "",
+            },
+            {
+              textContent:
+                "工具的初衷是为了让使用者释放双手，解决方案并未包含入侵的攻击和技术，仅模拟人工打开相应的任务进行操作，对程序本身不会造成任何影响，如果对平台技术层面有影响请转告我们。",
+              color: "",
+              backgroundColor: "",
+            },
+            {
+              textContent:
+                "使用者在使用本软件前已经得知可能涉嫌《非法入侵计算机信息系统罪》，但滥用本软件造成的—切后果自行承担!",
+              color: "",
+              backgroundColor: "",
+            },
+            {
+              textContent:
+                "使用方法：点击【开始任务】即可自动完成电脑端每日任务（除【登录】任务），期间可以切到后台，但不要最小化，中断后可以点击【开始/继续任务】即可继续任务。",
+              color: "white",
+              backgroundColor: "orange",
+            },
+          ];
+          for (const item of messages) {
+            const liItem = new AGElement("li");
+            const { textContent, color, backgroundColor } = item;
+            liItem.setText(textContent);
+            liItem.setStyle({
+              color,
+              backgroundColor,
+              margin: "5px 0",
+            });
+            liItem.elementMountTo(ulItem);
+          }
+          ulItem.elementMountTo(this.draw);
+          console.log("前言 end");
+        },
+      },
+      {
+        label: "开始",
+        event: () => {
+          console.log("开始...");
+          const divStatusBar = this.statusBar;
+          this.statusBar.setStyle({
+            height: "30px",
+            lineHeight: "30px",
+          });
+          this.setStatusBarText("未开始");
+
+          const ulItem = new AGElement("ul", "ag-draw");
+          ulItem.setStyle({
+            fontSize: "15px",
+            cursor: "default",
+            overflowX: "hidden",
+            color: "orange",
+            margin: "0",
+            marginBottom: "15px",
+            height: "332px",
+            backgroundColor: "#1e1e1e",
+            borderRadius: "10px",
+            display: "inline-table",
+            listStyleType: "decimal",
+            paddingLeft: "25px",
+          });
+
+          this.appendMessage(`已准备就绪...`);
+
+          const buttonItem = new AGElement("button", "ag-draw");
+          buttonItem.setText("开始任务");
+          buttonItem.setStyle({
+            backgroundColor: "#e22b2b00",
+            color: "orange",
+            border: "1px solid orange",
+            borderRadius: "10px",
+            height: "28px",
+            fontSize: "14px",
+            margin: "0 auto",
+            padding: "0 70px",
+            width: "auto",
+            cursor: "pointer",
+          });
+          buttonItem.toHTMLElement().onclick = () => {
+            console.log("点击..");
+          };
+
+          divStatusBar.elementMountTo(this.draw);
+
+          ulItem.elementMountTo(this.draw, true);
+
+          buttonItem.elementMountTo(this.draw, true);
+        },
+      },
+      {
+        label: "配置",
+        event: () => {
+          console.log("配置　begin");
+
+          const divRowOne = new AGElement("div", "ag-draw");
+
+          const localFormSettings: any = AGStorage.get("form_settings", "local", true);
+          const formSettings = new AGComponent.Form();
+          formSettings.addInput("text", "地址", localFormSettings?.["地址"]?.value);
+          formSettings.addInput("password", "卡密", localFormSettings?.["卡密"]?.value);
+
+          formSettings.addInput(
+            "password",
+            "题库",
+            localFormSettings?.["题库"]?.value,
+            "题库",
+            undefined,
+            "启用",
+            localFormSettings?.["题库"]?.checkbox
+          );
+          formSettings.instance.elementMountTo(divRowOne);
+
+          this.splitLine(divRowOne);
+
+          const tableSettings = new AGComponent.Table();
+          tableSettings.addHeader("任务", "启用");
+
+          tableSettings.instance.elementMountTo(divRowOne);
+
+          const tasks: Array<{
+            name: string;
+            event: Function;
+            element: undefined | HTMLInputElement;
+          }> = [
+            {
+              name: "每日答题",
+              event: () => {},
+              element: undefined,
+            },
+            {
+              name: "专项答题",
+              event: () => {},
+              element: undefined,
+            },
+            {
+              name: "每周答题",
+              event: () => {},
+              element: undefined,
+            },
+            {
+              name: "视听学习/时长",
+              event: () => {},
+              element: undefined,
+            },
+            {
+              name: "我要选读文章",
+              event: () => {},
+              element: undefined,
+            },
+          ];
+          const localTableSettings: any = AGStorage.get("table_settings", "local", true);
+          tasks.forEach((item) => {
+            const { name } = item;
+            const checkbox = new AGElement("input");
+            checkbox.setAttr("type", "checkbox");
+            if (localTableSettings && typeof localTableSettings === "object") {
+              (checkbox.toHTMLElement() as HTMLInputElement).checked = localTableSettings?.[name];
+            }
+            tableSettings.addRow(name, checkbox);
+          });
+
+          divRowOne.elementMountTo(this.draw);
+          this.splitLine(this.draw);
+
+          const divRowTwo = new AGElement("div", "ag-draw ag-row-margin-10");
+          divRowTwo.setStyle({
+            display: "flex",
+            justifyContent: "space-evenly",
+          });
+          const buttonVerification = new AGElement("button");
+          buttonVerification.setText("验证");
+          buttonVerification.setStyle({
+            backgroundColor: "#e22b2b00",
+            color: "rgb(0 201 0)",
+            border: "1px solid rgb(0 201 0)",
+            borderRadius: "10px",
+            height: "28px",
+            fontSize: "14px",
+            width: "100px",
+            cursor: "pointer",
+          });
+          buttonVerification.toHTMLElement().onclick = () => {
+            console.log("验证配置");
+          };
+
+          const buttonSave = new AGElement("button");
+          buttonSave.setText("保存");
+          buttonSave.setStyle({
+            backgroundColor: "#e22b2b00",
+            color: "orange",
+            border: "1px solid orange",
+            borderRadius: "10px",
+            height: "28px",
+            fontSize: "14px",
+            width: "100px",
+            cursor: "pointer",
+          });
+          buttonSave.toHTMLElement().onclick = () => {
+            console.log("保存配置");
+            formSettings.saveToStorage();
+            tableSettings.saveToStorage();
+          };
+
+          buttonVerification.elementMountTo(divRowTwo);
+          buttonSave.elementMountTo(divRowTwo);
+          divRowTwo.elementMountTo(this.draw, true);
+
+          console.log("配置　end");
+        },
+      },
+      {
+        label: "捐助",
+        event: () => {
+          console.log("捐助 begin");
+          const ulItem = new AGElement("ul", "ag-draw");
+          ulItem.setStyle({
+            paddingLeft: "20px",
+            cursor: "default",
+            overflowX: "hidden",
+            margin: "0",
+          });
+          const messages = [
+            {
+              textContent: `基于TS重制的爱果面板开源了，喜欢代码或者对这块感兴趣的可以自己去看，Github地址：<a href='https://github.com/tqy845/AG_Currency'>https://github.com/tqy845/AG_Currency</a>`,
+              color: "",
+              backgroundColor: "",
+            },
+            {
+              textContent: `教程/资源（Ｂ站）：<a href='https://space.bilibili.com/421403163'>全栈在学谭同学</a>`,
+              color: "",
+              backgroundColor: "",
+            },
+            {
+              textContent: `教程/资源（抖音）：<a href='https://www.douyin.com/user/MS4wLjABAAAAy6urBE8O_sJ_DSMS_QR7Uu-Oxdb0LbaAH88UAGFB0dlfY2kbymHlUpj5vi88Rhys'>全栈在学谭同学</a>`,
+              color: "",
+              backgroundColor: "",
+            },
+            {
+              textContent: `作品：<a href='https://qm.qq.com/cgi-bin/qm/qr?k=k1CvaaHVA96aedx5Ied0MdfEHBEG1Jx1&jump_from=webapi&authKey=yIYZHJNp9SdDb5FReSkLibAmYn5aX+3gyK/yeyABc0F+UXt/vMZiJm1VxTZu5zcn'>私有云/助农电商/学X通/智X树/学XX国</a>`,
+              color: "",
+              backgroundColor: "",
+            },
+          ];
+          for (const item of messages) {
+            const liItem = new AGElement("li");
+            const { textContent, color, backgroundColor } = item;
+            liItem.setText(textContent);
+            liItem.setStyle({
+              color,
+              backgroundColor,
+              margin: "5px 0",
+            });
+            liItem.elementMountTo(ulItem);
+          }
+          ulItem.elementMountTo(this.draw);
+
+          this.splitLine(this.draw);
+
+          const divDonation = new AGElement("div");
+          divDonation.elementMountTo(this.draw, true);
+
+          const divItem = new AGElement("div", "ag-draw ag-row-margin-10");
+          divItem.setStyle({
+            display: "flex",
+            justifyContent: "space-evenly",
+          });
+          const imgArr = [
+            {
+              name: `微信`,
+              src: "https://i.328888.xyz/2023/01/30/8UXlo.png",
+              color: `#05C160`,
+            },
+            {
+              name: `支付宝`,
+              src: "https://i.328888.xyz/2023/01/30/8UpYA.png",
+              color: `#1777FF`,
+            },
+          ];
+
+          for (const item of imgArr) {
+            const button = new AGElement("button");
+            button.setText(item.name);
+            button.setStyle({
+              background: item.color,
+              borderRadius: "5px",
+              border: "1px solid white",
+              color: "white",
+              height: "25px",
+              lineHeight: "23px",
+              cursor: "pointer",
+            });
+            button.toHTMLElement().onclick = () => {
+              const divDonationItem = new AGElement("div", "ag-draw donation");
+              divDonationItem.setStyle({
+                display: "inline-flex",
+              });
+              const spanMessage = new AGElement("span");
+              spanMessage.setText(
+                "插件本身免费，但是你不会介意捐助我一杯咖啡or奶茶的吧？捐助的时候记得备注联系方式或邮箱，卡密会在我收到捐助后第一时间给你。对了，不同的捐助会有区别对待（额外的奖励等），包括但不限于本插件。"
+              );
+              spanMessage.setStyle({
+                backgroundColor: "orange",
+                color: "white",
+              });
+              const imgPhoto = new AGElement("img");
+              imgPhoto.setAttr("src", item.src);
+              imgPhoto.setStyle({
+                width: "50%",
+                height: "50%",
+              });
+              spanMessage.elementMountTo(divDonationItem);
+              imgPhoto.elementMountTo(divDonationItem);
+              divDonationItem.elementMountTo(divDonation);
+            };
+            button.elementMountTo(divItem);
+          }
+
+          divItem.elementMountTo(this.draw, true);
+          console.log("捐助 end");
+        },
+      },
+    ];
+    private columnLeft: AGElement = new AGElement("div");
+    private columnRight: AGElement = new AGElement("div");
+    private columnCenter: AGElement = new AGElement("div");
     private constructor(panelName: string) {
       super();
 
-      // 初始化爱果全局异常监听事件
+      // 初始化全局异常监听事件
       // this.handlerAGError();
 
-      // 初始化爱果全局样式
+      // 初始化全局样式
       new AGStyles().mount();
 
-      // 初始化爱果用户信息
-      this.user = new User(AGStorage.get("user", "local", true));
-
-      // 初始化爱果面板
+      // 初始化面板
       const panel = new AGElement("ag-panel", panelName);
       this.panel = panel;
 
@@ -852,351 +1121,25 @@
       // 初始化状态栏
       this.statusBar = new AGElement("div", "ag-draw");
 
-      // 菜单列表
-      const options: Array<{ label: string; event: Function }> = [
-        {
-          label: "前言",
-          event: () => {
-            console.log("前言 begin");
-            const ulItem = new AGElement("ul", "ag-draw");
-            ulItem.setStyle({
-              paddingLeft: "20px",
-              cursor: "default",
-              overflowX: "hidden",
-              margin: "0",
-            });
-            const messages = [
-              {
-                textContent:
-                  "本工具为个人制作，仅供交流学习使用，请不要用于商业传播，否则后果自负！使用本工具即代表您同意本条款。",
-                color: "",
-                backgroundColor: "",
-              },
-              {
-                textContent:
-                  "工具的初衷是为了让使用者释放双手，解决方案并未包含入侵的攻击和技术，仅模拟人工打开相应的任务进行操作，对程序本身不会造成任何影响，如果对平台技术层面有影响请转告我们。",
-                color: "",
-                backgroundColor: "",
-              },
-              {
-                textContent:
-                  "使用者在使用本软件前已经得知可能涉嫌《非法入侵计算机信息系统罪》，但滥用本软件造成的—切后果自行承担!",
-                color: "",
-                backgroundColor: "",
-              },
-              {
-                textContent:
-                  "使用方法：点击【开始任务】即可自动完成电脑端每日任务（除【登录】任务），期间可以切到后台，但不要最小化，中断后可以点击【开始/继续任务】即可继续任务。",
-                color: "white",
-                backgroundColor: "orange",
-              },
-            ];
-            for (const item of messages) {
-              const liItem = new AGElement("li");
-              const { textContent, color, backgroundColor } = item;
-              liItem.setText(textContent);
-              liItem.setStyle({
-                color,
-                backgroundColor,
-                margin: "5px 0",
-              });
-              liItem.elementMountTo(ulItem);
-            }
-            ulItem.elementMountTo(this.draw);
-            console.log("前言 end");
-          },
-        },
-        {
-          label: "开始",
-          event: () => {
-            console.log("开始...");
-            const divStatusBar = this.statusBar;
-            this.statusBar.setStyle({
-              height: "30px",
-              lineHeight: "30px",
-            });
-            this.setStatusBarText("未开始");
+      // 初始化用户信息
+      this.user = { uid: -1, nick: "", avatarMediaUrl: "", gmtActive: -1, orgIds: [] };
+      Promise.resolve().then(async () => {
+        await this.initUser();
+        this.leftColumn();
+        this.centerColumn();
+        this.rightColumn();
+      });
 
-            const ulItem = new AGElement("ul", "ag-draw");
-            ulItem.setStyle({
-              fontSize: "15px",
-              cursor: "default",
-              overflowX: "hidden",
-              color: "orange",
-              margin: "0",
-              marginBottom: "15px",
-              height: "332px",
-              backgroundColor: "#1e1e1e",
-              borderRadius: "10px",
-              display: "inline-table",
-              listStyleType: "decimal",
-              paddingLeft: "25px",
-            });
+      AGElement.elementsMountTo([this.columnLeft, this.columnCenter, this.columnRight], panel);
+    }
 
-            this.appendMessage(`已准备就绪...`);
+    private async initUser() {
+   
+    }
 
-            const buttonItem = new AGElement("button", "ag-draw");
-            buttonItem.setText("开始任务");
-            buttonItem.setStyle({
-              backgroundColor: "#e22b2b00",
-              color: "orange",
-              border: "1px solid orange",
-              borderRadius: "10px",
-              height: "28px",
-              fontSize: "14px",
-              margin: "0 auto",
-              padding: "0 70px",
-              width: "auto",
-              cursor: "pointer",
-            });
-            buttonItem.toHTMLElement().onclick = () => {
-              console.log("点击..");
-            };
-
-            divStatusBar.elementMountTo(this.draw);
-
-            ulItem.elementMountTo(this.draw, true);
-
-            buttonItem.elementMountTo(this.draw, true);
-          },
-        },
-        {
-          label: "配置",
-          event: () => {
-            console.log("配置　begin");
-
-            const divRowOne = new AGElement("div", "ag-draw");
-
-            const localFormSettings: any = AGStorage.get("form_settings", "local", true);
-            const formSettings = new AGComponent.Form();
-            formSettings.addInput("text", "地址", localFormSettings?.["地址"]?.value);
-            formSettings.addInput("password", "卡密", localFormSettings?.["卡密"]?.value);
-
-            formSettings.addInput(
-              "password",
-              "题库",
-              localFormSettings?.["题库"]?.value,
-              "题库",
-              undefined,
-              "启用",
-              localFormSettings?.["题库"]?.checkbox
-            );
-            formSettings.instance.elementMountTo(divRowOne);
-
-            this.splitLine(divRowOne);
-
-            const tableSettings = new AGComponent.Table();
-            tableSettings.addHeader("任务", "启用");
-
-            tableSettings.instance.elementMountTo(divRowOne);
-
-            const tasks: Array<{
-              name: string;
-              event: Function;
-              element: undefined | HTMLInputElement;
-            }> = [
-              {
-                name: "每日答题",
-                event: () => {},
-                element: undefined,
-              },
-              {
-                name: "专项答题",
-                event: () => {},
-                element: undefined,
-              },
-              {
-                name: "每周答题",
-                event: () => {},
-                element: undefined,
-              },
-              {
-                name: "视听学习/时长",
-                event: () => {},
-                element: undefined,
-              },
-              {
-                name: "我要选读文章",
-                event: () => {},
-                element: undefined,
-              },
-            ];
-            const localTableSettings: any = AGStorage.get("table_settings", "local", true);
-            tasks.forEach((item) => {
-              const { name } = item;
-              const checkbox = new AGElement("input");
-              checkbox.setAttr("type", "checkbox");
-              if (localTableSettings && typeof localTableSettings === "object") {
-                (checkbox.toHTMLElement() as HTMLInputElement).checked = localTableSettings?.[name];
-              }
-              tableSettings.addRow(name, checkbox);
-            });
-
-            divRowOne.elementMountTo(this.draw);
-            this.splitLine(this.draw);
-
-            const divRowTwo = new AGElement("div", "ag-draw ag-row-margin-10");
-            divRowTwo.setStyle({
-              display: "flex",
-              justifyContent: "space-evenly",
-            });
-            const buttonVerification = new AGElement("button");
-            buttonVerification.setText("验证");
-            buttonVerification.setStyle({
-              backgroundColor: "#e22b2b00",
-              color: "rgb(0 201 0)",
-              border: "1px solid rgb(0 201 0)",
-              borderRadius: "10px",
-              height: "28px",
-              fontSize: "14px",
-              width: "100px",
-              cursor: "pointer",
-            });
-            buttonVerification.toHTMLElement().onclick = () => {
-              console.log("验证配置");
-            };
-
-            const buttonSave = new AGElement("button");
-            buttonSave.setText("保存");
-            buttonSave.setStyle({
-              backgroundColor: "#e22b2b00",
-              color: "orange",
-              border: "1px solid orange",
-              borderRadius: "10px",
-              height: "28px",
-              fontSize: "14px",
-              width: "100px",
-              cursor: "pointer",
-            });
-            buttonSave.toHTMLElement().onclick = () => {
-              console.log("保存配置");
-              formSettings.saveToStorage();
-              tableSettings.saveToStorage();
-            };
-
-            buttonVerification.elementMountTo(divRowTwo);
-            buttonSave.elementMountTo(divRowTwo);
-            divRowTwo.elementMountTo(this.draw, true);
-
-            console.log("配置　end");
-          },
-        },
-        {
-          label: "捐助",
-          event: () => {
-            console.log("捐助 begin");
-            const ulItem = new AGElement("ul", "ag-draw");
-            ulItem.setStyle({
-              paddingLeft: "20px",
-              cursor: "default",
-              overflowX: "hidden",
-              margin: "0",
-            });
-            const messages = [
-              {
-                textContent: `基于TS重制的爱果面板开源了，喜欢代码或者对这块感兴趣的可以自己去看，Github地址：<a href='https://github.com/tqy845/AG_Currency'>https://github.com/tqy845/AG_Currency</a>`,
-                color: "",
-                backgroundColor: "",
-              },
-              {
-                textContent: `教程/资源（Ｂ站）：<a href='https://space.bilibili.com/421403163'>全栈在学谭同学</a>`,
-                color: "",
-                backgroundColor: "",
-              },
-              {
-                textContent: `教程/资源（抖音）：<a href='https://www.douyin.com/user/MS4wLjABAAAAy6urBE8O_sJ_DSMS_QR7Uu-Oxdb0LbaAH88UAGFB0dlfY2kbymHlUpj5vi88Rhys'>全栈在学谭同学</a>`,
-                color: "",
-                backgroundColor: "",
-              },
-              {
-                textContent: `作品：<a href='https://qm.qq.com/cgi-bin/qm/qr?k=k1CvaaHVA96aedx5Ied0MdfEHBEG1Jx1&jump_from=webapi&authKey=yIYZHJNp9SdDb5FReSkLibAmYn5aX+3gyK/yeyABc0F+UXt/vMZiJm1VxTZu5zcn'>私有云/助农电商/学X通/智X树/学XX国</a>`,
-                color: "",
-                backgroundColor: "",
-              },
-            ];
-            for (const item of messages) {
-              const liItem = new AGElement("li");
-              const { textContent, color, backgroundColor } = item;
-              liItem.setText(textContent);
-              liItem.setStyle({
-                color,
-                backgroundColor,
-                margin: "5px 0",
-              });
-              liItem.elementMountTo(ulItem);
-            }
-            ulItem.elementMountTo(this.draw);
-
-            this.splitLine(this.draw);
-
-            const divDonation = new AGElement("div");
-            divDonation.elementMountTo(this.draw, true);
-
-            const divItem = new AGElement("div", "ag-draw ag-row-margin-10");
-            divItem.setStyle({
-              display: "flex",
-              justifyContent: "space-evenly",
-            });
-            const imgArr = [
-              {
-                name: `微信`,
-                src: "https://i.328888.xyz/2023/01/30/8UXlo.png",
-                color: `#05C160`,
-              },
-              {
-                name: `支付宝`,
-                src: "https://i.328888.xyz/2023/01/30/8UpYA.png",
-                color: `#1777FF`,
-              },
-            ];
-
-            for (const item of imgArr) {
-              const button = new AGElement("button");
-              button.setText(item.name);
-              button.setStyle({
-                background: item.color,
-                borderRadius: "5px",
-                border: "1px solid white",
-                color: "white",
-                height: "25px",
-                lineHeight: "23px",
-                cursor: "pointer",
-              });
-              button.toHTMLElement().onclick = () => {
-                const divDonationItem = new AGElement("div", "ag-draw donation");
-                divDonationItem.setStyle({
-                  display: "inline-flex",
-                });
-                const spanMessage = new AGElement("span");
-                spanMessage.setText(
-                  "插件本身免费，但是你不会介意捐助我一杯咖啡or奶茶的吧？捐助的时候记得备注联系方式或邮箱，卡密会在我收到捐助后第一时间给你。对了，不同的捐助会有区别对待（额外的奖励等），包括但不限于本插件。"
-                );
-                spanMessage.setStyle({
-                  backgroundColor: "orange",
-                  color: "white",
-                });
-                const imgPhoto = new AGElement("img");
-                imgPhoto.setAttr("src", item.src);
-                imgPhoto.setStyle({
-                  width: "50%",
-                  height: "50%",
-                });
-                spanMessage.elementMountTo(divDonationItem);
-                imgPhoto.elementMountTo(divDonationItem);
-                divDonationItem.elementMountTo(divDonation);
-              };
-              button.elementMountTo(divItem);
-            }
-
-            divItem.elementMountTo(this.draw, true);
-            console.log("捐助 end");
-          },
-        },
-      ];
-
+    private leftColumn() {
       // 左列
-      const columnLeft = new AGElement("div");
-      columnLeft.setStyle({
+      this.columnLeft.setStyle({
         backgroundColor: "#292929",
         width: "150px",
         height: "100%",
@@ -1228,7 +1171,7 @@
           display: "block",
           lineHeight: "80px",
           textAlign: "center",
-          overflowY: "hidden",
+          overflow: "hidden",
           fontSize: "20px",
           cursor: "default",
         });
@@ -1262,7 +1205,7 @@
           const num = document.querySelectorAll(`.ag-popup>div`).length + 1;
           this.popup(`${num} 这是一条测试信息...`);
         };
-        AGElement.elementsMountTo([rowOne, rowTwo, rowThree, rowFour], columnLeft);
+        AGElement.elementsMountTo([rowOne, rowTwo, rowThree, rowFour], this.columnLeft);
         const menu = new AGElement("ul");
         menu.setStyle({
           listStyleType: "none",
@@ -1271,10 +1214,10 @@
           textAlign: "center",
           marginTop: "20px",
         });
-        menu.elementMountTo(columnLeft);
+        menu.elementMountTo(this.columnLeft);
 
         let agOptionsActive = AGStorage.get("options_active");
-        for (const item of options) {
+        for (const item of this.options) {
           const li = new AGElement("li", `ag-options`);
           li.toHTMLElement().setAttribute("ag-title", item.label);
           li.setText(item.label);
@@ -1301,10 +1244,11 @@
           li.elementMountTo(menu);
         }
       }
+    }
 
+    private centerColumn() {
       // 中列
-      const columnCenter = new AGElement("div");
-      columnCenter.setStyle({
+      this.columnCenter.setStyle({
         width: "425px",
         height: "100%",
         display: "none",
@@ -1328,13 +1272,13 @@
           flexDirection: "column",
         });
 
-        AGElement.elementsMountTo([rowOne, rowTwo], columnCenter);
+        AGElement.elementsMountTo([rowOne, rowTwo], this.columnCenter);
       }
+    }
 
-      // 右列
-      const columnRight = new AGElement("div");
-      columnRight.setText(`展开控制台`);
-      columnRight.setStyle({
+    private rightColumn() {
+      this.columnRight.setText(`展开控制台`);
+      this.columnRight.setStyle({
         backgroundColor: "#121212",
         width: "25px",
         height: "100%",
@@ -1349,30 +1293,28 @@
         borderLeft: "1px solid #434343",
         borderRadius: "0 5px 5px 0",
       });
-      columnRight.toHTMLElement().onclick = () => {
-        const styles = panel.getStyle("textContent");
+      this.columnRight.toHTMLElement().onclick = () => {
+        const styles = this.panel.getStyle("textContent");
         const status = styles["textContent"].includes("展开");
         let width = status ? "600px" : "25px";
         let textContent = status ? "收起控制台" : "展开控制台";
         let display = status ? "block" : "none";
-        panel.setStyle({
+        this.panel.setStyle({
           width,
         });
         setTimeout(
           () => {
-            columnRight.setText(textContent);
-            columnLeft.setStyle({
+            this.columnRight.setText(textContent);
+            this.columnLeft.setStyle({
               display,
             });
-            columnCenter.setStyle({
+            this.columnCenter.setStyle({
               display,
             });
           },
           status ? 200 : 0
         );
       };
-
-      AGElement.elementsMountTo([columnLeft, columnCenter, columnRight], panel);
     }
 
     public static getInstance(panelName?: string) {
