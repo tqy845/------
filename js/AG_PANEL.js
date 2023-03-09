@@ -103,6 +103,10 @@
     }
     class AGElement extends AAGElement {
         element;
+        // 建造者模式
+        static builder(tagOrSelector, tagClass, tagId, tagAttributes) {
+            return new AGElement(tagOrSelector, tagClass, tagId, tagAttributes);
+        }
         constructor(tagOrSelector, tagClass, tagId, tagAttributes) {
             super();
             let element = null;
@@ -938,6 +942,7 @@
             new AGStyles().mount();
             // 初始化面板
             const panel = new AGElement("ag-panel", panelName);
+            AGElement.builder("ag-panel", panelName);
             this.panel = panel;
             // 初始化画板
             this.draw = new AGElement("div");

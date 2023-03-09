@@ -157,6 +157,16 @@
   class AGElement extends AAGElement {
     private element: HTMLElement;
 
+    // 建造者模式
+    public static builder(
+      tagOrSelector: HTMLElement | string,
+      tagClass?: string,
+      tagId?: string,
+      tagAttributes?: { [key: string]: string }
+    ) {
+      return new AGElement(tagOrSelector, tagClass, tagId, tagAttributes);
+    }
+
     constructor(
       tagOrSelector: HTMLElement | string,
       tagClass?: string,
@@ -1108,12 +1118,13 @@
 
       // 初始化全局异常监听事件
       // this.handlerAGError();
-
+      
       // 初始化全局样式
       new AGStyles().mount();
-
+      
       // 初始化面板
       const panel = new AGElement("ag-panel", panelName);
+      AGElement.builder("ag-panel", panelName);
       this.panel = panel;
 
       // 初始化画板
